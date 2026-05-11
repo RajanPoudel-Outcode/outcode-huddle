@@ -1,0 +1,65 @@
+services:
+  # Node.js Application Service
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ecommerce-api
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      MONGO_URL: mongodb://admin:password@mongo:27017/nodeLearning?retryWrites=true&w=majority&authSource=admin
+      DATABASE_URL: mongodb://admin:password@mongo:27017/nodeLearning?replicaSet=rs0&retryWrites=true&w=majority&authSource=admin
+      JWT_SECRET: passwordKey
+      FRONTEND_URL: http://localhost:3001
+    depends_on:
+      mongo:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./uploads:/app/uploads
+      - /app/node_modules
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # MongoDB Service
+  mongo:
+    image: mongo:latest
+    container_name: ecommerce-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: nodeLearning
+    volumes:
+      - mongo_data:/data/db
+      - mongo_config:/data/configdb
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+networks:
+  ecommerce-network:
+    driver: bridge
+
+volumes:
+  mongo_data:
+    driver: local
+  mongo_config:
+    driver: local
