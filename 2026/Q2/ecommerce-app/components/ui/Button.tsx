@@ -1,5 +1,5 @@
 import { Colors, Spacing, TextStyles } from "@/constants/theme";
-import { Pressable, StyleSheet, Text } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text } from "react-native";
 
 export type ButtonVariant = "primary" | "secondary";
 export type ButtonSize = "small" | "medium" | "large";
@@ -31,6 +31,9 @@ const styles = StyleSheet.create({
   secondaryButton: {
     borderWidth: 2,
     backgroundColor: "transparent",
+  },
+  spinner: {
+    marginRight: Spacing.sm,
   },
 });
 
@@ -87,20 +90,28 @@ export default function Button({
         style,
       ]}
     >
-      <Text
-        style={[
-          styles.text,
-          TextStyles.button,
-          {
-            color: variantConfig.color,
-            fontSize: sizeConfig.fontSize,
-            fontWeight: "600",
-          },
-          textStyle,
-        ]}
-      >
-        {loading ? "Loading..." : title}
-      </Text>
+      {loading ? (
+        <ActivityIndicator
+          size="small"
+          color={variantConfig.color}
+          style={styles.spinner}
+        />
+      ) : (
+        <Text
+          style={[
+            styles.text,
+            TextStyles.button,
+            {
+              color: variantConfig.color,
+              fontSize: sizeConfig.fontSize,
+              fontWeight: "600",
+            },
+            textStyle,
+          ]}
+        >
+          {title}
+        </Text>
+      )}
     </Pressable>
   );
 }

@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui";
+import { Button, ProfileHeader, ProfileMenuItem } from "@/components/ui";
 import { Colors, Spacing, TextStyles } from "@/constants/theme";
 import { useAppDispatch, useAppSelector } from "@/hooks/useRedux";
 import { storageService } from "@/services";
@@ -21,11 +21,23 @@ export default function ProfileScreen() {
     await storageService.removeItem("authUser");
   };
 
+  const handleEditProfile = () => {
+    // Navigate to edit profile screen
+    console.log("Edit profile");
+  };
+
+  const handleMyOrders = () => {
+    router.navigate("/(tabs)/orders");
+  };
+
+  const handleAccountDeletion = () => {
+    // Show confirmation dialog
+    console.log("Account deletion");
+  };
+
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={TextStyles.h1}>My Profile</Text>
-      </View>
+      <Text style={TextStyles.h1}>Profile</Text>
 
       {!isAuthenticated ? (
         <View style={styles.authSection}>
@@ -38,44 +50,55 @@ export default function ProfileScreen() {
         </View>
       ) : (
         <>
-          {/* User Info */}
-          <View style={styles.section}>
-            <View style={styles.userCard}>
-              <View style={styles.avatar} />
-              <View style={styles.userInfo}>
-                <Text style={TextStyles.h3}>{user?.name || "User"}</Text>
-                <Text style={TextStyles.bodySmall}>{user?.email}</Text>
-              </View>
-            </View>
-          </View>
+          {/* Profile Header with Edit Button */}
+          <ProfileHeader
+            name={user?.name || "User"}
+            email={user?.email || ""}
+            onEditPress={handleEditProfile}
+          />
 
-          {/* Menu Items */}
-          <View style={styles.section}>
-            <Text style={TextStyles.h3}>Account Settings</Text>
-            <View style={[styles.menuItem, { borderTopWidth: 1 }]}>
-              <Text style={TextStyles.body}>My Orders</Text>
-            </View>
-            <View style={styles.menuItem}>
-              <Text style={TextStyles.body}>Saved Addresses</Text>
-            </View>
-            <View style={styles.menuItem}>
-              <Text style={TextStyles.body}>Payment Methods</Text>
-            </View>
-            <View style={styles.menuItem}>
-              <Text style={TextStyles.body}>Settings</Text>
-            </View>
-            <View style={[styles.menuItem, { borderBottomWidth: 1 }]}>
-              <Text style={TextStyles.body}>Help & Support</Text>
-            </View>
-          </View>
+          {/* Account Menu Items */}
+          <ProfileMenuItem
+            icon={<Text style={styles.icon}>📋</Text>}
+            label="My Orders"
+            onPress={handleMyOrders}
+            isFirst
+          />
 
-          {/* Logout Button */}
-          <View style={styles.section}>
+          <ProfileMenuItem
+            icon={<Text style={styles.icon}>❓</Text>}
+            label="FAQ"
+            onPress={() => console.log("FAQ")}
+          />
+          <ProfileMenuItem
+            icon={<Text style={styles.icon}>📄</Text>}
+            label="Terms and Conditions"
+            onPress={() => console.log("Terms")}
+          />
+          <ProfileMenuItem
+            icon={<Text style={styles.icon}>🔒</Text>}
+            label="Privacy Policy"
+            onPress={() => console.log("Privacy")}
+          />
+
+          <ProfileMenuItem
+            icon={<Text style={styles.icon}>🆘</Text>}
+            label="Support Request"
+            onPress={() => console.log("Support")}
+          />
+
+          {/* Spacer to push buttons to bottom */}
+          <View style={styles.spacer} />
+
+          {/* Account Actions */}
+          <View style={styles.buttonContainer}>
+            <Button title="Log Out" onPress={handleLogout} />
+
             <Button
-              title="Logout"
-              onPress={handleLogout}
+              title="Account Deletion"
               variant="secondary"
-              size="large"
+              onPress={handleAccountDeletion}
+              style={styles.deleteButton}
             />
           </View>
         </>
@@ -87,14 +110,22 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.bg.primary,
+    backgroundColor: Colors.bg.secondary,
     paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
   },
-  header: {
-    marginBottom: Spacing.xl,
+  spacer: {
+    flex: 1,
+  },
+  buttonContainer: {
+    paddingVertical: Spacing.md,
+  },
+  deleteButton: {
+    marginTop: Spacing.md,
   },
   section: {
     marginBottom: Spacing.lg,
+    marginTop: Spacing.lg,
   },
   authSection: {
     flex: 1,
@@ -102,34 +133,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   placeholder: {
-    backgroundColor: Colors.gray[100],
+    backgroundColor: Colors.white,
     borderRadius: 8,
     padding: Spacing.lg,
     alignItems: "center",
     minHeight: 120,
     justifyContent: "center",
   },
-  userCard: {
-    backgroundColor: Colors.gray[50],
-    borderRadius: 12,
-    padding: Spacing.lg,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: Colors.primary,
-    marginRight: Spacing.lg,
-  },
-  userInfo: {
-    flex: 1,
-  },
-  menuItem: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
-    backgroundColor: Colors.gray[50],
-    borderColor: Colors.gray[20],
+  icon: {
+    fontSize: 20,
   },
 });
