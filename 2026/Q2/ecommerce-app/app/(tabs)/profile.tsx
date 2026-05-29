@@ -18,6 +18,7 @@ export default function ProfileScreen() {
   const handleLogout = async () => {
     dispatch(logout());
     await storageService.removeItem("authToken");
+    await storageService.removeItem("authRefreshToken");
     await storageService.removeItem("authUser");
   };
 

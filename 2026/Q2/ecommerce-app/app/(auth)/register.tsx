@@ -1,25 +1,25 @@
 import { Button } from "@/components/ui";
 import { Colors, Spacing, TextStyles } from "@/constants/theme";
 import { useAppDispatch, useAppSelector } from "@/hooks/useRedux";
-import { storageService } from "@/services";
+import { networkService, storageService } from "@/services";
 import type { RootState } from "@/store";
 import {
-    setError,
-    setLoading,
-    setToken,
-    setUser,
+  setError,
+  setLoading,
+  setToken,
+  setUser,
 } from "@/store/slices/authSlice";
 import { Validators } from "@/utils/validators";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 
 const styles = StyleSheet.create({
@@ -158,27 +158,78 @@ export default function RegisterScreen() {
     dispatch(setError(null));
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      interface RegisterResponse {
+        success: boolean;
+        message: string;
+        data: {
+          id: string;
+          name: string;
+          email: string;
+          address?: string;
+          type: string;
+          image?: string;
+          token: {
+            access_token: string;
+            refresh_token: string;
+          };
+          createdAt: string;
+          updatedAt: string;
+        };
+        meta: Record<string, unknown>;
+      }
 
-      // Mock successful registration
+      // Call API for registration
+      const response = await networkService.post<RegisterResponse>(
+        "/auth/signUp",
+        {
+          firstName,
+          lastName,
+          email,
+          password,
+        },
+        {
+          cache: false,
+          retryCount: 1,
+        },
+      );
+
+      // Extract user data and tokens
+      const { data } = response;
       const user = {
-        id: "1",
-        email,
-        name: `${firstName} ${lastName}`,
+        id: data.id,
+        email: data.email,
+        name: data.name,
       };
-      const token = "mock-token-" + Date.now();
+      const accessToken = data.token.access_token;
+      const refreshToken = data.token.refresh_token;
 
+      // Store in Redux
       dispatch(setUser(user));
-      dispatch(setToken(token));
+      dispatch(setToken(accessToken));
 
-      // Save to storage
-      await storageService.setItem("authToken", token);
+      // Save to persistent storage
+      await storageService.setItem("authToken", accessToken);
+      await storageService.setItem("authRefreshToken", refreshToken);
       await storageService.setItem("authUser", JSON.stringify(user));
 
       router.replace("/(tabs)");
-    } catch (err) {
-      dispatch(setError("Registration failed. Please try again."));
+    } catch (err: unknown) {
+      let errorMessage = "Registration failed. Please try again.";
+
+      // Handle API error response
+      if (err instanceof Error) {
+        if (err.message.includes("already exists")) {
+          errorMessage = "Email already registered. Please login instead.";
+        } else if (err.message.includes("Network")) {
+          errorMessage = "Network error. Please check your connection.";
+        } else if (err.message.includes("timeout")) {
+          errorMessage = "Request timeout. Please try again.";
+        } else {
+          errorMessage = err.message || errorMessage;
+        }
+      }
+
+      dispatch(setError(errorMessage));
     } finally {
       dispatch(setLoading(false));
     }

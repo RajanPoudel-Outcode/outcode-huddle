@@ -3,6 +3,7 @@
  * Handle API calls with offline support, retry logic, and error handling
  */
 
+import Config from "@/constants/config";
 import { ApiError, ErrorHandler, NetworkError } from "@/utils/error-handler";
 import { logger } from "@/utils/logger";
 import { storageService } from "./storage.service";
@@ -23,7 +24,7 @@ interface NetworkResponse<T> {
 
 export class NetworkService {
   private static instance: NetworkService;
-  private baseURL = "https://api.example.com";
+  private baseURL: string;
   private readonly DEFAULT_TIMEOUT = 10000;
   private readonly DEFAULT_RETRIES = 3;
   private readonly DEFAULT_CACHE_TTL = 3600000; // 1 hour
@@ -31,6 +32,7 @@ export class NetworkService {
   private requestCount = 0;
 
   private constructor() {
+    this.baseURL = Config.api.baseURL;
     this.setupNetworkListener();
   }
 
@@ -272,25 +274,44 @@ export class NetworkService {
 
       if (data && method !== "GET") {
         options.body = JSON.stringify(data);
+        logger.debug(`Request Body [${method} ${url}]`, data);
       }
 
-      const response = await fetch(url, options);
+      // Log outgoing request headers
+      logger.debug(`Request Headers [${method} ${url}]`, headers);
 
-      if (!response.ok) {
+      const response = await fetch(url, options);
+      const responseData = await response.json();
+
+      // Extract response headers
+      const responseHeaders = Object.fromEntries(response.headers.entries());
+
+      // Log response headers and status
+      logger.debug(`Response Headers [${method} ${url}]`, {
+        status: response.status,
+        headers: responseHeaders,
+      });
+
+      // Handle error response from API
+      if (responseData.error || !response.ok) {
+        const errorMessage =
+          responseData.message ||
+          ErrorHandler.getStatusMessage(response.status);
         throw new ApiError(
-          response.status,
+          responseData.status_code || response.status,
           `HTTP_${response.status}`,
-          ErrorHandler.getStatusMessage(response.status),
+          errorMessage,
           `${method} ${url} - ${response.status}`,
         );
       }
 
-      const responseData = (await response.json()) as T;
+      // Extract data from API response format
+      const data_from_response = responseData.data || responseData;
 
       return {
-        data: responseData,
+        data: data_from_response as T,
         status: response.status,
-        headers: Object.fromEntries(response.headers.entries()),
+        headers: responseHeaders,
       };
     } catch (error) {
       if (error instanceof ApiError) {
@@ -301,6 +322,7 @@ export class NetworkService {
         throw new NetworkError(true);
       }
 
+      logger.error("Network request failed", error);
       throw new NetworkError(true);
     } finally {
       clearTimeout(timeoutId);
