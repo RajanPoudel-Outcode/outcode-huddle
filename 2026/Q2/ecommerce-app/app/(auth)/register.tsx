@@ -158,28 +158,23 @@ export default function RegisterScreen() {
     dispatch(setError(null));
 
     try {
-      interface RegisterResponse {
-        success: boolean;
-        message: string;
-        data: {
-          id: string;
-          name: string;
-          email: string;
-          address?: string;
-          type: string;
-          image?: string;
-          token: {
-            access_token: string;
-            refresh_token: string;
-          };
-          createdAt: string;
-          updatedAt: string;
+      interface UserData {
+        id: string;
+        name: string;
+        email: string;
+        address?: string;
+        type: string;
+        image?: string;
+        token: {
+          access_token: string;
+          refresh_token: string;
         };
-        meta: Record<string, unknown>;
+        createdAt: string;
+        updatedAt: string;
       }
 
-      // Call API for registration
-      const response = await networkService.post<RegisterResponse>(
+      // Call API for registration - networkService already extracts .data from response
+      const response = await networkService.post<UserData>(
         "/auth/signUp",
         {
           firstName,
@@ -193,15 +188,14 @@ export default function RegisterScreen() {
         },
       );
 
-      // Extract user data and tokens
-      const { data } = response;
+      // response is the user data object directly (networkService extracts it)
       const user = {
-        id: data.id,
-        email: data.email,
-        name: data.name,
+        id: response.id,
+        email: response.email,
+        name: response.name,
       };
-      const accessToken = data.token.access_token;
-      const refreshToken = data.token.refresh_token;
+      const accessToken = response.token.access_token;
+      const refreshToken = response.token.refresh_token;
 
       // Store in Redux
       dispatch(setUser(user));

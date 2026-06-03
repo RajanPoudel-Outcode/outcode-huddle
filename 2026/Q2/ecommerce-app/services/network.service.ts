@@ -213,7 +213,7 @@ export class NetworkService {
           await storageService.setCache(url, response.data, cacheTTL);
         }
 
-        logger.info(`Success: ${method} ${url}`, { status: response.status });
+        logger.info(`Success: ${method} ${url}`, { status: response });
         return response.data;
       } catch (error) {
         lastError = error as Error;
@@ -333,7 +333,10 @@ export class NetworkService {
    * Build full URL with params
    */
   private buildURL(endpoint: string, params?: Record<string, unknown>): string {
-    const url = new URL(endpoint, this.baseURL);
+    const cleanEndpoint = endpoint.startsWith("/")
+      ? endpoint.slice(1)
+      : endpoint;
+    const url = new URL(cleanEndpoint, this.baseURL);
 
     if (params) {
       Object.entries(params).forEach(([key, value]) => {

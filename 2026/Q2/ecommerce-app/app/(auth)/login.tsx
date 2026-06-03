@@ -155,28 +155,23 @@ export default function LoginScreen() {
     dispatch(setError(null));
 
     try {
-      interface LoginResponse {
-        success: boolean;
-        message: string;
-        data: {
-          id: string;
-          name: string;
-          email: string;
-          address?: string;
-          type: string;
-          image?: string;
-          token: {
-            access_token: string;
-            refresh_token: string;
-          };
-          createdAt: string;
-          updatedAt: string;
+      interface UserData {
+        id: string;
+        name: string;
+        email: string;
+        address?: string;
+        type: string;
+        image?: string;
+        token: {
+          access_token: string;
+          refresh_token: string;
         };
-        meta: Record<string, unknown>;
+        createdAt: string;
+        updatedAt: string;
       }
 
-      // Call actual API
-      const response = await networkService.post<LoginResponse>(
+      // Call actual API - networkService already extracts .data from response
+      const response = await networkService.post<UserData>(
         "/auth/signIn",
         {
           email,
@@ -188,15 +183,18 @@ export default function LoginScreen() {
         },
       );
 
-      // Extract user data and tokens
-      const { data } = response;
+      // response is the user data object directly (networkService extracts it)
+      console.log("Login API response:", response);
+      console.log("User ID:", response.id);
+      console.log("User Name:", response.name);
+
       const user = {
-        id: data.id,
-        email: data.email,
-        name: data.name,
+        id: response.id,
+        email: response.email,
+        name: response.name,
       };
-      const accessToken = data.token.access_token;
-      const refreshToken = data.token.refresh_token;
+      const accessToken = response.token.access_token;
+      const refreshToken = response.token.refresh_token;
 
       // Store in Redux
       dispatch(setUser(user));
