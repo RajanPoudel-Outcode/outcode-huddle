@@ -3,20 +3,10 @@
  * Handle product catalog and filtering
  */
 
+import type { Product } from "@/features/products/types/product.types";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-export interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  originalPrice?: number;
-  image: string;
-  category: string;
-  rating: number;
-  reviews: number;
-  inStock: boolean;
-}
+export type { Product };
 
 interface ProductFilters {
   category?: string;
@@ -145,7 +135,7 @@ function applyFilters(state: ProductsState): void {
       // Assume products are already sorted by newest
       break;
     case "popular":
-      filtered.sort((a, b) => b.reviews - a.reviews);
+      filtered.sort((a, b) => b.numReviews - a.numReviews);
       break;
   }
 

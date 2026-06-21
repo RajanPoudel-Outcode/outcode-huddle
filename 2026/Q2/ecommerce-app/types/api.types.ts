@@ -14,6 +14,16 @@ export interface ApiMeta {
   api?: { version: number };
 }
 
+/** Pagination metadata returned alongside list endpoints. */
+export interface ApiPagination {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  limit: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
 /**
  * Standard success envelope returned by every API endpoint.
  * `T` is the shape of the `data` payload.
@@ -22,6 +32,7 @@ export interface ApiResponse<T> {
   success: boolean;
   message: string;
   data: T;
+  pagination?: ApiPagination;
   meta?: ApiMeta;
 }
 

@@ -12,6 +12,7 @@ import {
   signIn,
   signUp,
 } from "@/store/slices/authSlice";
+import { resetWishlist } from "@/store/slices/wishlistSlice";
 import { useCallback } from "react";
 import type { SignInPayload, SignUpPayload } from "../types/auth.types";
 
@@ -36,7 +37,10 @@ export function useAuth() {
     [dispatch],
   );
 
-  const logout = useCallback(() => dispatch(logoutUser()).unwrap(), [dispatch]);
+  const logout = useCallback(async () => {
+    await dispatch(logoutUser()).unwrap();
+    dispatch(resetWishlist());
+  }, [dispatch]);
 
   const clearError = useCallback(() => dispatch(setError(null)), [dispatch]);
 

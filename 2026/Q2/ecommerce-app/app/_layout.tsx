@@ -2,9 +2,9 @@ import HeaderBackButton from "@/components/ui/HeaderBackButton";
 import { useAppDispatch } from "@/hooks/useRedux";
 import OnboardingScreen from "@/screens/onboarding/OnboardingScreen";
 import { storageService } from "@/services";
-import type { RootState } from "@/store";
-import { store } from "@/store";
+import { CART_STORAGE_KEY, store, type RootState } from "@/store";
 import { restoreSession } from "@/store/slices/authSlice";
+import { setCart, type CartItem } from "@/store/slices/cartSlice";
 import { setHasViewedOnboarding } from "@/store/slices/onboardingSlice";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -35,6 +35,12 @@ function RootLayoutContent() {
 
         // Restore persisted auth session (tokens + user) into Redux.
         await dispatch(restoreSession());
+
+        // Rehydrate the saved cart.
+        const cart = await storageService.getItem<CartItem[]>(CART_STORAGE_KEY);
+        if (Array.isArray(cart)) {
+          dispatch(setCart(cart));
+        }
       } catch (error) {
         console.error("Error restoring state:", error);
       } finally {

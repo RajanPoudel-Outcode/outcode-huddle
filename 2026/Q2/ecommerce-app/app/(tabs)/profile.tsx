@@ -25,8 +25,8 @@ export default function ProfileScreen() {
     router.push("/change-password");
   };
 
-  const handleMyOrders = () => {
-    router.navigate("/(tabs)/orders");
+  const handleWishlist = () => {
+    router.navigate("/(tabs)/wishlist");
   };
 
   const handleAccountDeletion = () => {
@@ -63,9 +63,9 @@ export default function ProfileScreen() {
 
           {/* Account Menu Items */}
           <ProfileMenuItem
-            icon={<Text style={styles.icon}>📋</Text>}
-            label="My Orders"
-            onPress={handleMyOrders}
+            icon={<Text style={styles.icon}>❤️</Text>}
+            label="My Wishlist"
+            onPress={handleWishlist}
             isFirst
           />
 

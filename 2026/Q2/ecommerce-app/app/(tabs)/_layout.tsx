@@ -31,15 +31,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="orders"
+        name="wishlist"
         options={{
-          title: "Orders",
+          title: "Wishlist",
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons
-              name="package-variant"
-              size={size}
-              color={color}
-            />
+            <MaterialCommunityIcons name="heart" size={size} color={color} />
           ),
         }}
       />

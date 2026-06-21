@@ -1,29 +1,165 @@
+import ProductCard from "@/components/ui/ProductCard";
+import { buildAssetUrl } from "@/constants/config";
 import { Colors, Spacing, TextStyles } from "@/constants/theme";
-import { StyleSheet, Text, View } from "react-native";
+import { useCategories } from "@/features/categories";
+import { useFeatured, useProducts } from "@/features/products";
+import { useAppSelector } from "@/hooks/useRedux";
+import type { RootState } from "@/store";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function HomeScreen() {
+  const router = useRouter();
+  const [activeCategory, setActiveCategory] = useState<string | undefined>();
+
+  const cartCount = useAppSelector((s: RootState) => s.cart.itemCount);
+  const { categories } = useCategories();
+  const { products: featured } = useFeatured(10);
+  const query = useMemo(
+    () => ({ category: activeCategory }),
+    [activeCategory],
+  );
+  const { products, isLoading } = useProducts(query);
+
+  const header = (
+    <View>
+      {/* Promo banner */}
+      {featured[0] ? (
+        <TouchableOpacity
+          style={styles.banner}
+          activeOpacity={0.9}
+          onPress={() => router.push(`/product/${featured[0].id}`)}
+        >
+          <View style={styles.bannerText}>
+            <Text style={styles.bannerTitle}>{featured[0].name}</Text>
+            <Text style={styles.bannerSubtitle} numberOfLines={2}>
+              {featured[0].description}
+            </Text>
+            <View style={styles.shopNow}>
+              <Text style={styles.shopNowText}>Shop Now</Text>
+            </View>
+          </View>
+          <Image
+            source={{ uri: buildAssetUrl(featured[0].images?.[0]) }}
+            style={styles.bannerImage}
+            resizeMode="cover"
+          />
+        </TouchableOpacity>
+      ) : null}
+
+      {/* Categories */}
+      <Text style={[TextStyles.h3, styles.sectionTitle]}>Categories</Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.categoryRow}
+      >
+        {categories.map((cat) => {
+          const active = activeCategory === cat.name;
+          return (
+            <TouchableOpacity
+              key={cat.id}
+              style={styles.category}
+              onPress={() => setActiveCategory(active ? undefined : cat.name)}
+            >
+              <View style={[styles.categoryIcon, active && styles.categoryIconActive]}>
+                <Image
+                  source={{ uri: buildAssetUrl(cat.image) }}
+                  style={styles.categoryImage}
+                  resizeMode="cover"
+                />
+              </View>
+              <Text style={[styles.categoryLabel, active && styles.categoryLabelActive]}>
+                {cat.name}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {/* Flash deals */}
+      {featured.length > 0 && !activeCategory ? (
+        <>
+          <Text style={[TextStyles.h3, styles.sectionTitle]}>
+            Flash Deals for You
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.dealsRow}
+          >
+            {featured.map((p) => (
+              <ProductCard key={p.id} product={p} style={styles.dealCard} />
+            ))}
+          </ScrollView>
+        </>
+      ) : null}
+
+      <Text style={[TextStyles.h3, styles.sectionTitle]}>
+        {activeCategory ? activeCategory : "All Products"}
+      </Text>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={TextStyles.h1}>Welcome to Shop Hub</Text>
-        <Text style={TextStyles.bodySmall}>Browse our collection</Text>
+      {/* Search + cart */}
+      <View style={styles.topBar}>
+        <TouchableOpacity
+          style={styles.searchBar}
+          activeOpacity={0.7}
+          onPress={() => router.push("/search")}
+        >
+          <MaterialCommunityIcons name="magnify" size={20} color={Colors.text.secondary} />
+          <Text style={styles.searchPlaceholder}>Search</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.cartButton}
+          onPress={() => router.push("/(tabs)/cart")}
+        >
+          <MaterialCommunityIcons name="cart-outline" size={24} color={Colors.text.primary} />
+          {cartCount > 0 ? (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{cartCount}</Text>
+            </View>
+          ) : null}
+        </TouchableOpacity>
       </View>
 
-      {/* Products section placeholder */}
-      <View style={styles.section}>
-        <Text style={TextStyles.h3}>Featured Products</Text>
-        <View style={styles.placeholder}>
-          <Text style={TextStyles.body}>Product listing coming soon</Text>
-        </View>
-      </View>
-
-      {/* Categories section placeholder */}
-      <View style={styles.section}>
-        <Text style={TextStyles.h3}>Categories</Text>
-        <View style={styles.placeholder}>
-          <Text style={TextStyles.body}>Category browsing coming soon</Text>
-        </View>
-      </View>
+      <FlatList
+        data={products}
+        keyExtractor={(item) => item.id}
+        numColumns={2}
+        ListHeaderComponent={header}
+        columnWrapperStyle={styles.gridRow}
+        contentContainerStyle={styles.grid}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          isLoading ? (
+            <ActivityIndicator
+              size="large"
+              color={Colors.primary}
+              style={{ marginTop: Spacing.xl }}
+            />
+          ) : (
+            <Text style={[TextStyles.body, styles.empty]}>No products found</Text>
+          )
+        }
+        renderItem={({ item }) => (
+          <ProductCard product={item} style={styles.gridCard} />
+        )}
+      />
     </View>
   );
 }
@@ -34,19 +170,144 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.bg.primary,
     paddingHorizontal: Spacing.md,
   },
-  header: {
-    marginBottom: Spacing.xl,
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
   },
-  section: {
-    marginBottom: Spacing.lg,
+  searchBar: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    backgroundColor: Colors.gray[50],
+    borderRadius: 12,
+    paddingHorizontal: Spacing.md,
+    height: 44,
   },
-  placeholder: {
-    backgroundColor: Colors.gray[100],
-    borderRadius: 8,
-    padding: Spacing.lg,
-    marginTop: Spacing.sm,
+  searchPlaceholder: {
+    flex: 1,
+    color: Colors.text.secondary,
+    fontSize: 15,
+  },
+  cartButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: Colors.gray[50],
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 100,
+  },
+  badge: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: Colors.error,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 3,
+  },
+  badgeText: {
+    color: Colors.white,
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  banner: {
+    flexDirection: "row",
+    backgroundColor: Colors.gray[50],
+    borderRadius: 16,
+    overflow: "hidden",
+    marginTop: Spacing.sm,
+    minHeight: 140,
+  },
+  bannerText: {
+    flex: 1,
+    padding: Spacing.md,
+    justifyContent: "center",
+  },
+  bannerTitle: {
+    ...TextStyles.h3,
+    marginBottom: Spacing.xs,
+  },
+  bannerSubtitle: {
+    ...TextStyles.caption,
+    marginBottom: Spacing.md,
+  },
+  shopNow: {
+    alignSelf: "flex-start",
+    backgroundColor: Colors.primary,
+    borderRadius: 20,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+  },
+  shopNowText: {
+    color: Colors.white,
+    fontWeight: "600",
+    fontSize: 13,
+  },
+  bannerImage: {
+    width: 130,
+  },
+  sectionTitle: {
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
+  },
+  categoryRow: {
+    gap: Spacing.md,
+    paddingVertical: Spacing.xs,
+  },
+  category: {
+    alignItems: "center",
+    width: 72,
+  },
+  categoryIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    overflow: "hidden",
+    backgroundColor: Colors.gray[10],
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  categoryIconActive: {
+    borderColor: Colors.primary,
+  },
+  categoryImage: {
+    width: "100%",
+    height: "100%",
+  },
+  categoryLabel: {
+    ...TextStyles.caption,
+    marginTop: Spacing.xs,
+  },
+  categoryLabelActive: {
+    color: Colors.primary,
+    fontWeight: "600",
+  },
+  dealsRow: {
+    gap: Spacing.md,
+    paddingVertical: Spacing.xs,
+  },
+  dealCard: {
+    width: 160,
+  },
+  grid: {
+    paddingBottom: Spacing.xl,
+  },
+  gridRow: {
+    gap: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  gridCard: {
+    flex: 1,
+  },
+  empty: {
+    textAlign: "center",
+    marginTop: Spacing.xl,
+    color: Colors.text.secondary,
   },
 });
