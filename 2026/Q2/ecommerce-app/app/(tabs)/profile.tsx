@@ -34,6 +34,22 @@ export default function ProfileScreen() {
     console.log("Account deletion");
   };
 
+  const handleFaq = () => {
+    router.push("/faq");
+  };
+
+  const handleTerms = () => {
+    router.push("/legal/terms");
+  };
+
+  const handlePrivacy = () => {
+    router.push("/legal/privacy");
+  };
+
+  const handleSupport = () => {
+    router.push("/support");
+  };
+
   return (
     <View style={styles.container}>
       <Text style={TextStyles.h1}>Profile</Text>
@@ -78,23 +94,23 @@ export default function ProfileScreen() {
           <ProfileMenuItem
             icon={<Text style={styles.icon}>❓</Text>}
             label="FAQ"
-            onPress={() => console.log("FAQ")}
+            onPress={handleFaq}
           />
           <ProfileMenuItem
             icon={<Text style={styles.icon}>📄</Text>}
             label="Terms and Conditions"
-            onPress={() => console.log("Terms")}
+            onPress={handleTerms}
           />
           <ProfileMenuItem
             icon={<Text style={styles.icon}>🔒</Text>}
             label="Privacy Policy"
-            onPress={() => console.log("Privacy")}
+            onPress={handlePrivacy}
           />
 
           <ProfileMenuItem
             icon={<Text style={styles.icon}>🆘</Text>}
             label="Support Request"
-            onPress={() => console.log("Support")}
+            onPress={handleSupport}
           />
 
           {/* Spacer to push buttons to bottom */}

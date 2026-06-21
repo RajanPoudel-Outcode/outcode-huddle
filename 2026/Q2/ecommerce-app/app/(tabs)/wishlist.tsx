@@ -2,10 +2,19 @@ import ProductCard from "@/components/ui/ProductCard";
 import { Colors, Spacing, TextStyles } from "@/constants/theme";
 import { useWishlist } from "@/features/wishlist";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useFocusEffect } from "expo-router";
+import { useCallback } from "react";
 import { ActivityIndicator, FlatList, StyleSheet, Text, View } from "react-native";
 
 export default function WishlistScreen() {
-  const { items, isLoading, reload } = useWishlist();
+  const { items, isLoading, reload, dropItem } = useWishlist();
+
+  // Refresh whenever the tab gains focus (reflects hearts toggled elsewhere).
+  useFocusEffect(
+    useCallback(() => {
+      reload();
+    }, [reload]),
+  );
 
   return (
     <View style={styles.container}>
@@ -40,7 +49,13 @@ export default function WishlistScreen() {
           onRefresh={reload}
           refreshing={isLoading}
           renderItem={({ item }) => (
-            <ProductCard product={item} style={styles.card} />
+            <ProductCard
+              product={item}
+              style={styles.card}
+              onToggleWishlist={(p, wishlisted) => {
+                if (!wishlisted) dropItem(p.id);
+              }}
+            />
           )}
         />
       )}

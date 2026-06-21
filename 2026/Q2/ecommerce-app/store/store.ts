@@ -9,7 +9,6 @@ import authReducer from "./slices/authSlice";
 import cartReducer from "./slices/cartSlice";
 import onboardingReducer from "./slices/onboardingSlice";
 import productsReducer from "./slices/productsSlice";
-import wishlistReducer from "./slices/wishlistSlice";
 
 export const CART_STORAGE_KEY = "cart";
 
@@ -19,7 +18,6 @@ export const store = configureStore({
     products: productsReducer,
     cart: cartReducer,
     onboarding: onboardingReducer,
-    wishlist: wishlistReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

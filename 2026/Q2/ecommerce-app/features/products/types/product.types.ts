@@ -29,6 +29,7 @@ export interface Product {
   storageOptions: string[];
   specifications: ProductSpecification[];
   isFeatured: boolean;
+  isWishlisted: boolean;
   createdAt?: string;
   updatedAt?: string;
 }

@@ -1,63 +1,38 @@
 /**
  * useWishlist
- * Reads the wishlist from Redux and exposes toggle/isWishlisted. Auto-hydrates
- * once when authenticated; mutations sync with the backend's response.
+ * Local-state hook for the Wishlist screen: fetches the user's wishlisted
+ * products and exposes reload + a helper to drop an item locally (the heart on
+ * a card already performs the API call). Heart state elsewhere comes from each
+ * product's server-provided `isWishlisted` flag, so no global store is needed.
  */
 
 import type { Product } from "@/features/products/types/product.types";
-import { useAppDispatch, useAppSelector } from "@/hooks/useRedux";
-import type { RootState } from "@/store";
-import {
-  setWishlist,
-  setWishlistError,
-  setWishlistLoading,
-} from "@/store/slices/wishlistSlice";
 import { ErrorHandler } from "@/utils/error-handler";
-import { useCallback, useEffect } from "react";
+import { useCallback, useState } from "react";
 import { wishlistService } from "../services/wishlist.service";
 
 export function useWishlist() {
-  const dispatch = useAppDispatch();
-  const items = useAppSelector((s: RootState) => s.wishlist.items);
-  const ids = useAppSelector((s: RootState) => s.wishlist.ids);
-  const isLoading = useAppSelector((s: RootState) => s.wishlist.isLoading);
-  const error = useAppSelector((s: RootState) => s.wishlist.error);
-  const loaded = useAppSelector((s: RootState) => s.wishlist.loaded);
-  const isAuthenticated = useAppSelector(
-    (s: RootState) => s.auth.isAuthenticated,
-  );
+  const [items, setItems] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
-    dispatch(setWishlistLoading(true));
+    setIsLoading(true);
+    setError(null);
     try {
       const res = await wishlistService.getWishlist();
-      dispatch(setWishlist(res.data));
+      setItems(res.data);
     } catch (err) {
-      dispatch(setWishlistError(ErrorHandler.getUserMessage(err)));
+      setError(ErrorHandler.getUserMessage(err));
+    } finally {
+      setIsLoading(false);
     }
-  }, [dispatch]);
+  }, []);
 
-  useEffect(() => {
-    if (isAuthenticated && !loaded) {
-      reload();
-    }
-  }, [isAuthenticated, loaded, reload]);
+  /** Remove an item from the local list (card already called the API). */
+  const dropItem = useCallback((productId: string) => {
+    setItems((prev) => prev.filter((p) => p.id !== productId));
+  }, []);
 
-  const toggle = useCallback(
-    async (product: Product) => {
-      try {
-        const res = ids.includes(product.id)
-          ? await wishlistService.removeFromWishlist(product.id)
-          : await wishlistService.addToWishlist(product.id);
-        dispatch(setWishlist(res.data));
-      } catch (err) {
-        dispatch(setWishlistError(ErrorHandler.getUserMessage(err)));
-      }
-    },
-    [ids, dispatch],
-  );
-
-  const isWishlisted = useCallback((id: string) => ids.includes(id), [ids]);
-
-  return { items, ids, isLoading, error, toggle, isWishlisted, reload };
+  return { items, isLoading, error, reload, dropItem };
 }

@@ -25,7 +25,7 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     alignItems: "center",
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.xl,
@@ -120,9 +120,6 @@ export default function OnboardingScreen() {
     <View style={styles.container}>
       {/* Header with Skip Button */}
       <View style={styles.header}>
-        <Text style={TextStyles.h3}>
-          Step {localPage + 1} of {ONBOARDING_DATA.length}
-        </Text>
         <Button
           title="Skip"
           onPress={handleSkip}

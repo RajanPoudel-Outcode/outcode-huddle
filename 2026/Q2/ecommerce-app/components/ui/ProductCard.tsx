@@ -1,26 +1,47 @@
 /**
  * ProductCard
  * Compact product tile with image, name, price (+ struck original price) and a
- * wishlist heart. Tapping the card opens the product detail screen.
+ * wishlist heart. Heart state comes from the product's server-provided
+ * `isWishlisted`; toggling updates optimistically and calls the wishlist API.
+ * Tapping the card opens the product detail screen.
  */
 
 import { buildAssetUrl } from "@/constants/config";
 import { Colors, Spacing, TextStyles } from "@/constants/theme";
-import { useWishlist } from "@/features/wishlist";
 import type { Product } from "@/features/products";
+import { wishlistService } from "@/features/wishlist";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 interface ProductCardProps {
   product: Product;
   style?: any;
+  /** Called after a successful toggle (e.g. so a wishlist screen can drop a removed item). */
+  onToggleWishlist?: (product: Product, wishlisted: boolean) => void;
 }
 
-export default function ProductCard({ product, style }: ProductCardProps) {
+export default function ProductCard({ product, style, onToggleWishlist }: ProductCardProps) {
   const router = useRouter();
-  const { isWishlisted, toggle } = useWishlist();
-  const wishlisted = isWishlisted(product.id);
+  const [wishlisted, setWishlisted] = useState(!!product.isWishlisted);
+
+  // Keep in sync if the product is refetched with new server state.
+  useEffect(() => {
+    setWishlisted(!!product.isWishlisted);
+  }, [product.isWishlisted, product.id]);
+
+  const handleToggle = async () => {
+    const next = !wishlisted;
+    setWishlisted(next); // optimistic
+    try {
+      if (next) await wishlistService.addToWishlist(product.id);
+      else await wishlistService.removeFromWishlist(product.id);
+      onToggleWishlist?.(product, next);
+    } catch {
+      setWishlisted(!next); // revert on failure
+    }
+  };
 
   return (
     <Pressable
@@ -33,11 +54,7 @@ export default function ProductCard({ product, style }: ProductCardProps) {
           style={styles.image}
           resizeMode="cover"
         />
-        <Pressable
-          style={styles.heart}
-          hitSlop={8}
-          onPress={() => toggle(product)}
-        >
+        <Pressable style={styles.heart} hitSlop={8} onPress={handleToggle}>
           <MaterialCommunityIcons
             name={wishlisted ? "heart" : "heart-outline"}
             size={20}

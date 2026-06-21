@@ -2,13 +2,13 @@ import { Button, Snackbar } from "@/components/ui";
 import { buildAssetUrl } from "@/constants/config";
 import { Colors, Spacing, TextStyles } from "@/constants/theme";
 import { useProduct } from "@/features/products";
-import { useWishlist } from "@/features/wishlist";
+import { wishlistService } from "@/features/wishlist";
 import { useAppDispatch, useAppSelector } from "@/hooks/useRedux";
 import type { RootState } from "@/store";
 import { addToCart } from "@/store/slices/cartSlice";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -37,7 +37,6 @@ export default function ProductDetailScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { product, isLoading, error } = useProduct(id);
-  const { isWishlisted, toggle } = useWishlist();
   const cartCount = useAppSelector((s: RootState) => s.cart.itemCount);
 
   const [activeImage, setActiveImage] = useState(0);
@@ -45,6 +44,12 @@ export default function ProductDetailScreen() {
   const [color, setColor] = useState<string | undefined>();
   const [storage, setStorage] = useState<string | undefined>();
   const [toast, setToast] = useState("");
+  const [wishlisted, setWishlisted] = useState(false);
+
+  // Sync heart state from the server-provided flag once the product loads.
+  useEffect(() => {
+    setWishlisted(!!product?.isWishlisted);
+  }, [product?.isWishlisted]);
 
   if (isLoading) {
     return (
@@ -63,9 +68,19 @@ export default function ProductDetailScreen() {
     );
   }
 
-  const wishlisted = isWishlisted(product.id);
   const selectedColor = color ?? product.colors?.[0]?.name;
   const selectedStorage = storage ?? product.storageOptions?.[0];
+
+  const handleToggleWishlist = async () => {
+    const next = !wishlisted;
+    setWishlisted(next); // optimistic
+    try {
+      if (next) await wishlistService.addToWishlist(product.id);
+      else await wishlistService.removeFromWishlist(product.id);
+    } catch {
+      setWishlisted(!next); // revert on failure
+    }
+  };
 
   const handleAddToCart = () => {
     dispatch(
@@ -93,7 +108,7 @@ export default function ProductDetailScreen() {
             <CircleButton
               icon={wishlisted ? "heart" : "heart-outline"}
               color={wishlisted ? Colors.error : Colors.text.primary}
-              onPress={() => toggle(product)}
+              onPress={handleToggleWishlist}
             />
             <CircleButton icon="share-variant" onPress={() => setToast("Share coming soon")} />
             <View>

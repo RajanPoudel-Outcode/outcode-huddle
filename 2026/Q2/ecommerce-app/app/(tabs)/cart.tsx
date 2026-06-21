@@ -9,6 +9,7 @@ import {
   type CartItem,
 } from "@/store/slices/cartSlice";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   FlatList,
@@ -24,6 +25,7 @@ const SHIPPING = 15;
 
 export default function CartScreen() {
   const dispatch = useAppDispatch();
+  const router = useRouter();
   const items = useAppSelector((s: RootState) => s.cart.items);
   const subtotal = useAppSelector((s: RootState) => s.cart.total);
   const [toast, setToast] = useState("");
@@ -31,7 +33,7 @@ export default function CartScreen() {
   const total = items.length > 0 ? subtotal + SHIPPING : 0;
 
   const renderItem = ({ item }: { item: CartItem }) => (
-    <View style={styles.card}>
+    <Pressable style={styles.card} onPress={() => router.push(`/product/${item.productId}`)}>
       <Image source={{ uri: item.image }} style={styles.image} resizeMode="cover" />
       <View style={styles.info}>
         <Text style={styles.name} numberOfLines={1}>
@@ -65,7 +67,7 @@ export default function CartScreen() {
           </Pressable>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 
   return (
