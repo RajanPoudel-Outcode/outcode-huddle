@@ -26,10 +26,7 @@ export default function HomeScreen() {
   const cartCount = useAppSelector((s: RootState) => s.cart.itemCount);
   const { categories } = useCategories();
   const { products: featured } = useFeatured(10);
-  const query = useMemo(
-    () => ({ category: activeCategory }),
-    [activeCategory],
-  );
+  const query = useMemo(() => ({ category: activeCategory }), [activeCategory]);
   const { products, isLoading } = useProducts(query);
 
   const header = (
@@ -59,7 +56,12 @@ export default function HomeScreen() {
       ) : null}
 
       {/* Categories */}
-      <Text style={[TextStyles.h3, styles.sectionTitle]}>Categories</Text>
+      <SectionHeader
+        title="Categories"
+        onSeeAll={
+          categories.length > 5 ? () => router.push("/categories") : undefined
+        }
+      />
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -73,14 +75,24 @@ export default function HomeScreen() {
               style={styles.category}
               onPress={() => setActiveCategory(active ? undefined : cat.name)}
             >
-              <View style={[styles.categoryIcon, active && styles.categoryIconActive]}>
+              <View
+                style={[
+                  styles.categoryIcon,
+                  active && styles.categoryIconActive,
+                ]}
+              >
                 <Image
                   source={{ uri: buildAssetUrl(cat.image) }}
                   style={styles.categoryImage}
                   resizeMode="cover"
                 />
               </View>
-              <Text style={[styles.categoryLabel, active && styles.categoryLabelActive]}>
+              <Text
+                style={[
+                  styles.categoryLabel,
+                  active && styles.categoryLabelActive,
+                ]}
+              >
                 {cat.name}
               </Text>
             </TouchableOpacity>
@@ -91,9 +103,17 @@ export default function HomeScreen() {
       {/* Flash deals */}
       {featured.length > 0 && !activeCategory ? (
         <>
-          <Text style={[TextStyles.h3, styles.sectionTitle]}>
-            Flash Deals for You
-          </Text>
+          <SectionHeader
+            title="Flash Deals for You"
+            onSeeAll={
+              featured.length > 5
+                ? () =>
+                    router.push(
+                      `/collection?title=${encodeURIComponent("Flash Deals for You")}&featured=1`,
+                    )
+                : undefined
+            }
+          />
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -106,9 +126,17 @@ export default function HomeScreen() {
         </>
       ) : null}
 
-      <Text style={[TextStyles.h3, styles.sectionTitle]}>
-        {activeCategory ? activeCategory : "All Products"}
-      </Text>
+      <SectionHeader
+        title={activeCategory ?? "All Products"}
+        onSeeAll={
+          products.length > 5
+            ? () =>
+                router.push(
+                  `/collection?title=${encodeURIComponent(activeCategory ?? "All Products")}${activeCategory ? `&category=${encodeURIComponent(activeCategory)}` : ""}`,
+                )
+            : undefined
+        }
+      />
     </View>
   );
 
@@ -121,14 +149,22 @@ export default function HomeScreen() {
           activeOpacity={0.7}
           onPress={() => router.push("/search")}
         >
-          <MaterialCommunityIcons name="magnify" size={20} color={Colors.text.secondary} />
+          <MaterialCommunityIcons
+            name="magnify"
+            size={20}
+            color={Colors.text.secondary}
+          />
           <Text style={styles.searchPlaceholder}>Search</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.cartButton}
           onPress={() => router.push("/(tabs)/cart")}
         >
-          <MaterialCommunityIcons name="cart-outline" size={24} color={Colors.text.primary} />
+          <MaterialCommunityIcons
+            name="cart-outline"
+            size={24}
+            color={Colors.text.primary}
+          />
           {cartCount > 0 ? (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{cartCount}</Text>
@@ -153,7 +189,9 @@ export default function HomeScreen() {
               style={{ marginTop: Spacing.xl }}
             />
           ) : (
-            <Text style={[TextStyles.body, styles.empty]}>No products found</Text>
+            <Text style={[TextStyles.body, styles.empty]}>
+              No products found
+            </Text>
           )
         }
         renderItem={({ item }) => (
@@ -164,11 +202,42 @@ export default function HomeScreen() {
   );
 }
 
+function SectionHeader({
+  title,
+  onSeeAll,
+}: {
+  title: string;
+  onSeeAll?: () => void;
+}) {
+  return (
+    <View style={styles.sectionHeader}>
+      <Text style={TextStyles.h3}>{title}</Text>
+      {onSeeAll ? (
+        <TouchableOpacity onPress={onSeeAll} hitSlop={8}>
+          <Text style={styles.seeAll}>See all</Text>
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.bg.primary,
     paddingHorizontal: Spacing.md,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
+  },
+  seeAll: {
+    color: Colors.primary,
+    fontWeight: "600",
+    fontSize: 14,
   },
   topBar: {
     flexDirection: "row",
@@ -251,10 +320,6 @@ const styles = StyleSheet.create({
   },
   bannerImage: {
     width: 130,
-  },
-  sectionTitle: {
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.sm,
   },
   categoryRow: {
     gap: Spacing.md,

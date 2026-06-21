@@ -137,6 +137,22 @@ function RootLayoutContent() {
             headerLeft: () => <HeaderBackButton />,
           }}
         />
+        <Stack.Screen
+          name="categories"
+          options={{
+            headerShown: true,
+            title: "Categories",
+            headerLeft: () => <HeaderBackButton />,
+          }}
+        />
+        <Stack.Screen
+          name="collection"
+          options={{
+            headerShown: true,
+            title: "",
+            headerLeft: () => <HeaderBackButton />,
+          }}
+        />
       </Stack>
       <StatusBar style="auto" />
     </>
