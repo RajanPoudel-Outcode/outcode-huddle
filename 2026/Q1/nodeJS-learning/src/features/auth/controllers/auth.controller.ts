@@ -99,7 +99,7 @@ export class AuthController {
         return;
       }
 
-      const user = await this.authService.getUserProfile(req.user._id);
+      const user = await this.authService.getUserProfile(req.user.id);
 
       const response = createApiResponse(true, 'Profile retrieved successfully', { user });
       res.status(200).json(response);
@@ -123,7 +123,7 @@ export class AuthController {
       const updateData: IUpdateProfileRequest = req.body;
       const imagePath = req.file?.path;
 
-      const user = await this.authService.updateProfile(req.user._id, updateData, imagePath);
+      const user = await this.authService.updateProfile(req.user.id, updateData, imagePath);
 
       const response = createApiResponse(true, 'Profile updated successfully', { user });
       res.status(200).json(response);
@@ -143,7 +143,7 @@ export class AuthController {
         return;
       }
 
-      await this.authService.logout(req.user._id);
+      await this.authService.logout(req.user.id);
 
       const response = createApiResponse(true, 'Logged out successfully');
       res.status(200).json(response);
@@ -189,7 +189,7 @@ export class AuthController {
 
       const { currentPassword, newPassword } = req.body;
 
-      await this.authService.changePassword(req.user._id, currentPassword, newPassword);
+      await this.authService.changePassword(req.user.id, currentPassword, newPassword);
 
       const response = createApiResponse(true, 'Password changed successfully');
       res.status(200).json(response);
