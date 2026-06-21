@@ -1,18 +1,19 @@
+import { useAppDispatch } from "@/hooks/useRedux";
 import OnboardingScreen from "@/screens/onboarding/OnboardingScreen";
 import { storageService } from "@/services";
 import type { RootState } from "@/store";
 import { store } from "@/store";
-import { setToken, setUser } from "@/store/slices/authSlice";
+import { restoreSession } from "@/store/slices/authSlice";
 import { setHasViewedOnboarding } from "@/store/slices/onboardingSlice";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Provider, useDispatch, useSelector } from "react-redux";
+import { Provider, useSelector } from "react-redux";
 
 function RootLayoutContent() {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const router = useRouter();
   const [isHydrated, setIsHydrated] = useState(false);
   const hasViewedOnboarding = useSelector(
@@ -31,19 +32,8 @@ function RootLayoutContent() {
           dispatch(setHasViewedOnboarding(true));
         }
 
-        // Restore auth state
-        const token = await storageService.getItem("authToken");
-        const userStr = await storageService.getItem("authUser");
-
-        if (token && userStr) {
-          try {
-            const user = JSON.parse(userStr as string);
-            dispatch(setToken(token as string));
-            dispatch(setUser(user));
-          } catch (error) {
-            console.error("Error parsing stored user:", error);
-          }
-        }
+        // Restore persisted auth session (tokens + user) into Redux.
+        await dispatch(restoreSession());
       } catch (error) {
         console.error("Error restoring state:", error);
       } finally {
@@ -80,6 +70,24 @@ function RootLayoutContent() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="edit-profile"
+          options={{
+            headerShown: true,
+            title: "Edit Profile",
+            headerBackTitle: "",
+            headerBackButtonDisplayMode: "minimal",
+          }}
+        />
+        <Stack.Screen
+          name="change-password"
+          options={{
+            headerShown: true,
+            title: "Change Password",
+            headerBackTitle: "",
+            headerBackButtonDisplayMode: "minimal",
+          }}
+        />
       </Stack>
       <StatusBar style="auto" />
     </>

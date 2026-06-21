@@ -34,8 +34,9 @@ export class Validators {
     if (!/[0-9]/.test(password)) {
       errors.push("Password must contain a digit");
     }
-    if (!/[!@#$%^&*]/.test(password)) {
-      errors.push("Password must contain a special character (!@#$%^&*)");
+    // Must match the backend's allowed special characters: @$!%*?&
+    if (!/[@$!%*?&]/.test(password)) {
+      errors.push("Password must contain a special character (@$!%*?&)");
     }
 
     return {

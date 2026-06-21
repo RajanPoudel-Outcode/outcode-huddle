@@ -1,20 +1,16 @@
-import { Button } from "@/components/ui";
+import { Button, Snackbar } from "@/components/ui";
 import { Colors, Spacing, TextStyles } from "@/constants/theme";
-import { useAppDispatch, useAppSelector } from "@/hooks/useRedux";
-import { networkService, storageService } from "@/services";
-import type { RootState } from "@/store";
-import {
-  setError,
-  setLoading,
-  setToken,
-  setUser,
-} from "@/store/slices/authSlice";
+import { useAuth } from "@/features/auth";
+import { useImagePicker } from "@/hooks/useImagePicker";
+import type { PickedImage } from "@/types/upload.types";
 import { Validators } from "@/utils/validators";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
+  Image,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -91,14 +87,42 @@ const styles = StyleSheet.create({
   footerText: {
     color: Colors.text.secondary,
   },
+  avatarSection: {
+    alignItems: "center",
+    marginBottom: Spacing.lg,
+  },
+  avatar: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: Colors.gray[10],
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+  },
+  avatarPlaceholder: {
+    fontSize: 32,
+  },
+  avatarHint: {
+    color: Colors.primary,
+    marginTop: Spacing.sm,
+    fontWeight: "600",
+  },
 });
 
 export default function RegisterScreen() {
-  const dispatch = useAppDispatch();
   const router = useRouter();
-  const isLoading = useAppSelector((state: RootState) => state.auth.isLoading);
-  const error = useAppSelector((state: RootState) => state.auth.error);
+  const { signUp, isLoading, error, clearError } = useAuth();
+  const { pickImage } = useImagePicker();
 
+  const [successMessage, setSuccessMessage] = useState("");
+  const [avatar, setAvatar] = useState<PickedImage | null>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -151,81 +175,26 @@ export default function RegisterScreen() {
     return isValid;
   };
 
+  const handlePickAvatar = async () => {
+    const picked = await pickImage();
+    if (picked) setAvatar(picked);
+  };
+
   const handleRegister = async () => {
     if (!validateForm()) return;
 
-    dispatch(setLoading(true));
-    dispatch(setError(null));
-
     try {
-      interface UserData {
-        id: string;
-        name: string;
-        email: string;
-        address?: string;
-        type: string;
-        image?: string;
-        token: {
-          access_token: string;
-          refresh_token: string;
-        };
-        createdAt: string;
-        updatedAt: string;
-      }
-
-      // Call API for registration - networkService already extracts .data from response
-      const response = await networkService.post<UserData>(
-        "/auth/signUp",
-        {
-          firstName,
-          lastName,
-          email,
-          password,
-        },
-        {
-          cache: false,
-          retryCount: 1,
-        },
-      );
-
-      // response is the user data object directly (networkService extracts it)
-      const user = {
-        id: response.id,
-        email: response.email,
-        name: response.name,
-      };
-      const accessToken = response.token.access_token;
-      const refreshToken = response.token.refresh_token;
-
-      // Store in Redux
-      dispatch(setUser(user));
-      dispatch(setToken(accessToken));
-
-      // Save to persistent storage
-      await storageService.setItem("authToken", accessToken);
-      await storageService.setItem("authRefreshToken", refreshToken);
-      await storageService.setItem("authUser", JSON.stringify(user));
-
-      router.replace("/(tabs)");
-    } catch (err: unknown) {
-      let errorMessage = "Registration failed. Please try again.";
-
-      // Handle API error response
-      if (err instanceof Error) {
-        if (err.message.includes("already exists")) {
-          errorMessage = "Email already registered. Please login instead.";
-        } else if (err.message.includes("Network")) {
-          errorMessage = "Network error. Please check your connection.";
-        } else if (err.message.includes("timeout")) {
-          errorMessage = "Request timeout. Please try again.";
-        } else {
-          errorMessage = err.message || errorMessage;
-        }
-      }
-
-      dispatch(setError(errorMessage));
-    } finally {
-      dispatch(setLoading(false));
+      // Backend expects a single `name`; combine the first/last name fields.
+      const { message } = await signUp({
+        name: `${firstName} ${lastName}`.trim(),
+        email,
+        password,
+        image: avatar ?? undefined,
+      });
+      setSuccessMessage(message);
+      // Navigation is handled centrally by the root layout's auth effect.
+    } catch {
+      // Error is surfaced through `error` from useAuth (shown in the Snackbar).
     }
   };
 
@@ -247,14 +216,23 @@ export default function RegisterScreen() {
           </Text>
         </View>
 
-        {/* Error Message */}
-        {error && (
-          <View style={{ marginBottom: Spacing.md }}>
-            <Text style={[TextStyles.body, { color: Colors.error }]}>
-              {error}
-            </Text>
-          </View>
-        )}
+        {/* Avatar (optional) */}
+        <View style={styles.avatarSection}>
+          <Pressable
+            style={styles.avatar}
+            onPress={handlePickAvatar}
+            disabled={isLoading}
+          >
+            {avatar ? (
+              <Image source={{ uri: avatar.uri }} style={styles.avatarImage} />
+            ) : (
+              <Text style={styles.avatarPlaceholder}>📷</Text>
+            )}
+          </Pressable>
+          <Text style={styles.avatarHint} onPress={handlePickAvatar}>
+            {avatar ? "Change photo" : "Add photo (optional)"}
+          </Text>
+        </View>
 
         {/* Form */}
         <View style={styles.form}>
@@ -332,7 +310,7 @@ export default function RegisterScreen() {
                 },
               ]}
             >
-              Min 8 chars, uppercase, lowercase, digit, special char (!@#$%^&*)
+              Min 8 chars, uppercase, lowercase, digit, special char (@$!%*?&)
             </Text>
           </View>
 
@@ -381,6 +359,20 @@ export default function RegisterScreen() {
           </View>
         </View>
       </ScrollView>
+
+      <Snackbar
+        visible={!!successMessage}
+        message={successMessage}
+        variant="success"
+        onDismiss={() => setSuccessMessage("")}
+      />
+
+      <Snackbar
+        visible={!!error}
+        message={error ?? ""}
+        variant="error"
+        onDismiss={clearError}
+      />
     </KeyboardAvoidingView>
   );
 }

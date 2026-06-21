@@ -1,30 +1,28 @@
 import { Button, ProfileHeader, ProfileMenuItem } from "@/components/ui";
+import { buildAssetUrl } from "@/constants/config";
 import { Colors, Spacing, TextStyles } from "@/constants/theme";
-import { useAppDispatch, useAppSelector } from "@/hooks/useRedux";
-import { storageService } from "@/services";
-import type { RootState } from "@/store";
-import { logout } from "@/store/slices/authSlice";
+import { useAuth } from "@/features/auth";
 import { useRouter } from "expo-router";
-import { StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 
 export default function ProfileScreen() {
-  const dispatch = useAppDispatch();
   const router = useRouter();
-  const user = useAppSelector((state: RootState) => state.auth.user);
-  const isAuthenticated = useAppSelector(
-    (state: RootState) => state.auth.isAuthenticated,
-  );
+  const { user, isAuthenticated, logout } = useAuth();
 
-  const handleLogout = async () => {
-    dispatch(logout());
-    await storageService.removeItem("authToken");
-    await storageService.removeItem("authRefreshToken");
-    await storageService.removeItem("authUser");
+  const avatarUri = buildAssetUrl(user?.avatar);
+
+  const handleLogout = () => {
+    // useAuth clears persistent storage and resets Redux auth state.
+    // The root layout's auth effect handles redirecting to login.
+    logout();
   };
 
   const handleEditProfile = () => {
-    // Navigate to edit profile screen
-    console.log("Edit profile");
+    router.push("/edit-profile");
+  };
+
+  const handleChangePassword = () => {
+    router.push("/change-password");
   };
 
   const handleMyOrders = () => {
@@ -55,6 +53,11 @@ export default function ProfileScreen() {
           <ProfileHeader
             name={user?.name || "User"}
             email={user?.email || ""}
+            avatar={
+              avatarUri ? (
+                <Image source={{ uri: avatarUri }} style={styles.avatar} />
+              ) : undefined
+            }
             onEditPress={handleEditProfile}
           />
 
@@ -64,6 +67,12 @@ export default function ProfileScreen() {
             label="My Orders"
             onPress={handleMyOrders}
             isFirst
+          />
+
+          <ProfileMenuItem
+            icon={<Text style={styles.icon}>🔑</Text>}
+            label="Change Password"
+            onPress={handleChangePassword}
           />
 
           <ProfileMenuItem
@@ -143,5 +152,10 @@ const styles = StyleSheet.create({
   },
   icon: {
     fontSize: 20,
+  },
+  avatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
   },
 });
