@@ -105,6 +105,7 @@ export interface IProductResponse {
   storageOptions: string[];
   specifications: IProductSpecification[];
   isFeatured: boolean;
+  isWishlisted: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

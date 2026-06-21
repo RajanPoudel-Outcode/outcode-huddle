@@ -22,6 +22,7 @@ const toProductResponse = (product: any) => ({
   storageOptions: product.storageOptions || [],
   specifications: product.specifications || [],
   isFeatured: product.isFeatured || false,
+  isWishlisted: true,
   createdAt: product.createdAt,
   updatedAt: product.updatedAt
 });

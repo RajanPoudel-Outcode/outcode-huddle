@@ -10,10 +10,14 @@ import express, { Application } from "express";
 import adminRoutes from "@/features/admin/routes/admin.routes";
 import authRoutes from "@/features/auth/routes/auth.routes";
 import categoriesRoutes from "@/features/categories/routes/categories.routes";
+import contentRoutes from "@/features/content/routes/content.routes";
+import faqRoutes from "@/features/faq/routes/faq.routes";
 import ordersRoutes from "@/features/orders/routes/orders.routes";
 import productsRoutes from "@/features/products/routes/products.routes";
+import supportRoutes from "@/features/support/routes/support.routes";
 import wishlistRoutes from "@/features/wishlist/routes/wishlist.routes";
 import { responseMiddleware } from "@/shared/middlewares/response.middleware";
+import swaggerRoutes from "@/shared/swagger/swagger.routes";
 import {
   errorHandler,
   handleUncaughtException,
@@ -54,6 +58,10 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // Serve uploaded files (e.g. profile images) statically at /uploads
 app.use("/uploads", express.static("uploads"));
 
+// API documentation (Swagger UI at /api/docs, spec at /api/docs.json).
+// Mounted before responseMiddleware so the raw OpenAPI spec isn't wrapped.
+app.use("/api", swaggerRoutes);
+
 // Add metadata to all API responses
 app.use("/api", responseMiddleware);
 
@@ -84,7 +92,12 @@ app.get("/api/info", (req, res) => {
     endpoints: {
       auth: "/api/auth",
       products: "/api/products",
+      categories: "/api/categories",
+      wishlist: "/api/wishlist",
       orders: "/api/orders",
+      faq: "/api/faq",
+      content: "/api/content",
+      support: "/api/support",
       admin: "/api/admin",
     },
     timestamp: new Date().toISOString(),
@@ -97,6 +110,9 @@ app.use("/api/products", productsRoutes);
 app.use("/api/categories", categoriesRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/orders", ordersRoutes);
+app.use("/api/faq", faqRoutes);
+app.use("/api/content", contentRoutes);
+app.use("/api/support", supportRoutes);
 app.use("/api/admin", adminRoutes);
 
 // Error handlers (must be last)
