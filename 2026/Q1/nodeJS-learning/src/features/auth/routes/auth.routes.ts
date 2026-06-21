@@ -17,5 +17,6 @@ router.get('/profile', authMiddleware, authController.getProfile.bind(authContro
 router.put('/profile', authMiddleware, upload.single('image'), authController.updateProfile.bind(authController));
 router.post('/logout', authMiddleware, authController.logout.bind(authController));
 router.post('/change-password', authMiddleware, authController.changePassword.bind(authController));
+router.delete('/account', authMiddleware, authController.deleteAccount.bind(authController));
 
 export default router;

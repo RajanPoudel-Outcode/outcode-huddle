@@ -122,6 +122,9 @@ export class AuthService {
     if (!user) {
       throw new NotFoundError('Invalid email or password');
     }
+    if (user.isDeleted) {
+      throw new UnauthorizedError('This account has been deleted');
+    }
 
     // Check password
     const isPasswordValid = await this.comparePassword(password, user.password);
@@ -180,7 +183,7 @@ export class AuthService {
       const decoded = jwt.verify(refreshToken, this.jwtSecret) as ITokenPayload;
       
       const user = await User.findById(decoded.userId);
-      if (!user || !user.token || user.token.refresh_token !== refreshToken) {
+      if (!user || user.isDeleted || !user.token || user.token.refresh_token !== refreshToken) {
         throw new UnauthorizedError('Invalid refresh token');
       }
 
@@ -270,6 +273,21 @@ export class AuthService {
    */
   async logout(userId: string): Promise<void> {
     await User.findByIdAndUpdate(userId, {
+      $unset: { token: 1 }
+    });
+  }
+
+  /**
+   * Soft-delete the user's account: flag it, stamp the time, and clear tokens.
+   * Deleted users are blocked from signin/refresh and by the auth middleware.
+   */
+  async deleteAccount(userId: string): Promise<void> {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+    await User.findByIdAndUpdate(userId, {
+      $set: { isDeleted: true, deletedAt: new Date() },
       $unset: { token: 1 }
     });
   }

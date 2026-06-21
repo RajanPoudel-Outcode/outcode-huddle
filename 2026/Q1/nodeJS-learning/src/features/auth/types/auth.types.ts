@@ -9,6 +9,8 @@ export interface IAuthUser {
     access_token?: string;
     refresh_token?: string;
   };
+  isDeleted?: boolean;
+  deletedAt?: Date | null;
   createdAt?: Date;
   updatedAt?: Date;
 }

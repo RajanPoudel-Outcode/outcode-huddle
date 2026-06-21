@@ -59,6 +59,16 @@ export const adminMiddleware = async (req: AuthenticatedRequest, res: Response, 
         return;
       }
 
+      if (user.isDeleted) {
+        const errorResponse: IErrorResponse = {
+          message: "This account has been deleted",
+          status_code: 401,
+          error: true
+        };
+        res.status(401).json(errorResponse);
+        return;
+      }
+
       if (user.type !== "Admin") {
         const errorResponse: IErrorResponse = {
           message: "You are not an admin, access denied!",

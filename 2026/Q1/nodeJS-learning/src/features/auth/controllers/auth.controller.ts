@@ -153,6 +153,26 @@ export class AuthController {
   }
 
   /**
+   * Soft-delete the authenticated user's account
+   */
+  async deleteAccount(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        const response = createApiResponse(false, 'Authentication required');
+        res.status(401).json(response);
+        return;
+      }
+
+      await this.authService.deleteAccount(req.user.id);
+
+      const response = createApiResponse(true, 'Account deleted successfully');
+      res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Change password
    */
   @joiValidation(
