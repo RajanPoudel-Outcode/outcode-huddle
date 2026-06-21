@@ -9,8 +9,10 @@ import express, { Application } from "express";
 // Import feature routes
 import adminRoutes from "@/features/admin/routes/admin.routes";
 import authRoutes from "@/features/auth/routes/auth.routes";
+import categoriesRoutes from "@/features/categories/routes/categories.routes";
 import ordersRoutes from "@/features/orders/routes/orders.routes";
 import productsRoutes from "@/features/products/routes/products.routes";
+import wishlistRoutes from "@/features/wishlist/routes/wishlist.routes";
 import { responseMiddleware } from "@/shared/middlewares/response.middleware";
 import {
   errorHandler,
@@ -92,6 +94,8 @@ app.get("/api/info", (req, res) => {
 // Feature-based API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productsRoutes);
+app.use("/api/categories", categoriesRoutes);
+app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/orders", ordersRoutes);
 app.use("/api/admin", adminRoutes);
 

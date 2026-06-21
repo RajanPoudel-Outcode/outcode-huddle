@@ -22,10 +22,17 @@ export class ProductsService {
       images: productObj.images || [],
       quantity: productObj.quantity,
       price: productObj.price,
+      originalPrice: productObj.originalPrice,
       category: productObj.category,
+      brand: productObj.brand || '',
       rating: productObj.rating || 0,
+      numReviews: productObj.numReviews || 0,
       review: productObj.review || [],
       countInStock: productObj.countInStock || 0,
+      colors: productObj.colors || [],
+      storageOptions: productObj.storageOptions || [],
+      specifications: productObj.specifications || [],
+      isFeatured: productObj.isFeatured || false,
       createdAt: productObj.createdAt,
       updatedAt: productObj.updatedAt
     };
@@ -39,6 +46,10 @@ export class ProductsService {
 
     if (query.category) {
       filter.category = { $regex: query.category, $options: 'i' };
+    }
+
+    if (query.featured !== undefined) {
+      filter.isFeatured = query.featured;
     }
 
     if (query.search) {
@@ -152,9 +163,16 @@ export class ProductsService {
       name: productData.name.trim(),
       description: productData.description.trim(),
       price: productData.price,
+      originalPrice: productData.originalPrice,
       category: productData.category.trim(),
+      brand: productData.brand?.trim() || '',
       quantity: productData.quantity,
       countInStock: productData.countInStock || 1,
+      numReviews: productData.numReviews || 0,
+      colors: productData.colors || [],
+      storageOptions: productData.storageOptions || [],
+      specifications: productData.specifications || [],
+      isFeatured: productData.isFeatured || false,
       images: imagePaths || [],
       rating: 0,
       review: []
@@ -198,9 +216,16 @@ export class ProductsService {
     if (updateData.name) updates.name = updateData.name.trim();
     if (updateData.description) updates.description = updateData.description.trim();
     if (updateData.price !== undefined) updates.price = updateData.price;
+    if (updateData.originalPrice !== undefined) updates.originalPrice = updateData.originalPrice;
     if (updateData.category) updates.category = updateData.category.trim();
+    if (updateData.brand !== undefined) updates.brand = updateData.brand.trim();
     if (updateData.quantity !== undefined) updates.quantity = updateData.quantity;
     if (updateData.countInStock !== undefined) updates.countInStock = updateData.countInStock;
+    if (updateData.numReviews !== undefined) updates.numReviews = updateData.numReviews;
+    if (updateData.colors !== undefined) updates.colors = updateData.colors;
+    if (updateData.storageOptions !== undefined) updates.storageOptions = updateData.storageOptions;
+    if (updateData.specifications !== undefined) updates.specifications = updateData.specifications;
+    if (updateData.isFeatured !== undefined) updates.isFeatured = updateData.isFeatured;
     if (imagePaths && imagePaths.length > 0) updates.images = imagePaths;
 
     const updatedProduct = await Product.findByIdAndUpdate(
@@ -347,8 +372,9 @@ export class ProductsService {
    * Get featured products (highest rated)
    */
   async getFeaturedProducts(limit: number = 10): Promise<IPaginatedProductsResponse> {
-    const totalCount = await Product.countDocuments({});
-    const products = await Product.find({})
+    const filter = { isFeatured: true };
+    const totalCount = await Product.countDocuments(filter);
+    const products = await Product.find(filter)
       .sort({ rating: -1, createdAt: -1 })
       .limit(limit)
       .lean();
@@ -361,10 +387,17 @@ export class ProductsService {
       images: product.images || [],
       quantity: product.quantity,
       price: product.price,
+      originalPrice: product.originalPrice,
       category: product.category,
+      brand: product.brand || '',
       rating: product.rating || 0,
+      numReviews: product.numReviews || 0,
       review: product.review || [],
       countInStock: product.countInStock || 0,
+      colors: product.colors || [],
+      storageOptions: product.storageOptions || [],
+      specifications: product.specifications || [],
+      isFeatured: product.isFeatured || false,
       createdAt: product.createdAt || new Date(),
       updatedAt: product.updatedAt || new Date()
     }));

@@ -40,12 +40,43 @@ const productSchema: Schema<IProductDocument> = new mongoose.Schema({
         min: 0,
         max: 5
     },
+    numReviews: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
     review: [reviewSchema],
     countInStock: {
         type: Number,
         required: true,
         default: 1,
         min: 0
+    },
+    brand: {
+        type: String,
+        trim: true,
+        default: ""
+    },
+    originalPrice: {
+        type: Number,
+        min: 0
+    },
+    colors: [{
+        _id: false,
+        name: { type: String, required: true },
+        hex: { type: String, required: true }
+    }],
+    storageOptions: [{
+        type: String
+    }],
+    specifications: [{
+        _id: false,
+        label: { type: String, required: true },
+        icon: { type: String, default: "" }
+    }],
+    isFeatured: {
+        type: Boolean,
+        default: false
     }
 }, {
     timestamps: true
