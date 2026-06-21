@@ -36,7 +36,7 @@ export class OrdersController {
       }
 
       const orderData: ICreateOrderRequest = req.body;
-      const order = await this.ordersService.createOrder(req.user._id, orderData);
+      const order = await this.ordersService.createOrder(req.user.id, orderData);
 
       res.status(201).json({
         success: true,
@@ -66,7 +66,7 @@ export class OrdersController {
       const query: IOrderQuery = req.query as any;
       
       // Admin can see all orders, regular users only their own
-      const userId = req.user.type === 'Admin' ? undefined : req.user._id;
+      const userId = req.user.type === 'Admin' ? undefined : req.user.id;
       const result = await this.ordersService.getOrders(query, userId);
 
       res.status(200).json({
@@ -106,7 +106,7 @@ export class OrdersController {
       }
       
       // Admin can see any order, regular users only their own
-      const userId = req.user.type === 'Admin' ? undefined : req.user._id;
+      const userId = req.user.type === 'Admin' ? undefined : req.user.id;
       const order = await this.ordersService.getOrderById(id, userId);
 
       res.status(200).json({
@@ -148,7 +148,7 @@ export class OrdersController {
       const updateData: IUpdateOrderRequest = req.body;
 
       // Admin can update any order, regular users only their own (limited updates)
-      const userId = req.user.type === 'Admin' ? undefined : req.user._id;
+      const userId = req.user.type === 'Admin' ? undefined : req.user.id;
       const order = await this.ordersService.updateOrder(id, updateData, userId);
 
       res.status(200).json({
@@ -212,7 +212,7 @@ export class OrdersController {
       }
 
       const query: IOrderQuery = req.query as any;
-      const result = await this.ordersService.getUserOrders(req.user._id, query);
+      const result = await this.ordersService.getUserOrders(req.user.id, query);
 
       res.status(200).json({
         success: true,
@@ -242,7 +242,7 @@ export class OrdersController {
       const { id } = req.params;
       
       // Admin can cancel any order, regular users only their own
-      const userId = req.user.type === 'Admin' ? undefined : req.user._id;
+      const userId = req.user.type === 'Admin' ? undefined : req.user.id;
       const order = await this.ordersService.cancelOrder(id, userId);
 
       res.status(200).json({

@@ -1,4 +1,5 @@
 import { Colors, Spacing, TextStyles } from "@/constants/theme";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 interface ProfileMenuItemProps {
@@ -41,7 +42,11 @@ export default function ProfileMenuItem({
       </Text>
 
       <View style={styles.chevron}>
-        <Text style={styles.chevronIcon}>›</Text>
+        <MaterialCommunityIcons
+          name="chevron-right"
+          size={22}
+          color={Colors.text.secondary}
+        />
       </View>
     </Pressable>
   );
@@ -88,9 +93,5 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.sm,
     justifyContent: "center",
     alignItems: "center",
-  },
-  chevronIcon: {
-    fontSize: 20,
-    color: Colors.text.secondary,
   },
 });

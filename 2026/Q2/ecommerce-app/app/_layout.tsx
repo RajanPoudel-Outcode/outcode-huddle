@@ -153,6 +153,39 @@ function RootLayoutContent() {
             headerLeft: () => <HeaderBackButton />,
           }}
         />
+        <Stack.Screen
+          name="checkout"
+          options={{
+            headerShown: true,
+            title: "Checkout",
+            headerLeft: () => <HeaderBackButton />,
+          }}
+        />
+        <Stack.Screen
+          name="order-confirmation"
+          options={{
+            headerShown: true,
+            title: "Order Placed",
+            headerBackVisible: false,
+            headerLeft: () => null,
+          }}
+        />
+        <Stack.Screen
+          name="orders"
+          options={{
+            headerShown: true,
+            title: "My Orders",
+            headerLeft: () => <HeaderBackButton />,
+          }}
+        />
+        <Stack.Screen
+          name="orders/[id]"
+          options={{
+            headerShown: true,
+            title: "Order Details",
+            headerLeft: () => <HeaderBackButton />,
+          }}
+        />
       </Stack>
       <StatusBar style="auto" />
     </>

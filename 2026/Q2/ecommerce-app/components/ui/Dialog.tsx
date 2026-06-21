@@ -34,13 +34,16 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: Spacing.md,
+    alignItems: "center",
   },
   title: {
     marginBottom: Spacing.sm,
+    textAlign: "center",
   },
   message: {
     marginBottom: Spacing.lg,
     color: Colors.text.secondary,
+    textAlign: "center",
   },
   actions: {
     flexDirection: "row",
@@ -87,7 +90,7 @@ export default function Dialog({
             <View
               style={[styles.iconContainer, { backgroundColor: iconColor }]}
             >
-              <Text style={{ fontSize: 24 }}>
+              <Text style={{ fontSize: 24, color: Colors.white }}>
                 {variant === "info" && "ℹ️"}
                 {variant === "success" && "✓"}
                 {variant === "warning" && "⚠️"}

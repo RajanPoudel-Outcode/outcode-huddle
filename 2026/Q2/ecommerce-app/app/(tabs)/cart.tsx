@@ -1,5 +1,6 @@
-import { Button, Snackbar } from "@/components/ui";
+import { Button } from "@/components/ui";
 import { Colors, Spacing, TextStyles } from "@/constants/theme";
+import { SHIPPING_FEE } from "@/features/orders";
 import { useAppDispatch, useAppSelector } from "@/hooks/useRedux";
 import type { RootState } from "@/store";
 import {
@@ -9,7 +10,6 @@ import {
 } from "@/store/slices/cartSlice";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
 import {
   FlatList,
   Image,
@@ -20,16 +20,13 @@ import {
   View,
 } from "react-native";
 
-const SHIPPING = 15;
-
 export default function CartScreen() {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const items = useAppSelector((s: RootState) => s.cart.items);
   const subtotal = useAppSelector((s: RootState) => s.cart.total);
-  const [toast, setToast] = useState("");
 
-  const total = items.length > 0 ? subtotal + SHIPPING : 0;
+  const total = items.length > 0 ? subtotal + SHIPPING_FEE : 0;
 
   const renderItem = ({ item }: { item: CartItem }) => (
     <Pressable
@@ -153,25 +150,18 @@ export default function CartScreen() {
           {/* Summary */}
           <View style={styles.summary}>
             <Row label="Sub Total" value={`$${subtotal.toFixed(2)}`} />
-            <Row label="Shipping & Tax" value={`$${SHIPPING.toFixed(2)}`} />
+            <Row label="Shipping & Tax" value={`$${SHIPPING_FEE.toFixed(2)}`} />
             <Row label="Total" value={`$${total.toFixed(2)}`} bold />
           </View>
 
           <Button
             title="Checkout"
-            onPress={() => setToast("Checkout coming soon")}
+            onPress={() => router.push("/checkout")}
             size="large"
             style={styles.checkout}
           />
         </>
       )}
-
-      <Snackbar
-        visible={!!toast}
-        message={toast}
-        variant="info"
-        onDismiss={() => setToast("")}
-      />
     </View>
   );
 }
