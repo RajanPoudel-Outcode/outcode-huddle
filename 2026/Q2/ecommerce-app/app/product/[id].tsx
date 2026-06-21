@@ -7,13 +7,16 @@ import { useAppDispatch, useAppSelector } from "@/hooks/useRedux";
 import type { RootState } from "@/store";
 import { addToCart } from "@/store/slices/cartSlice";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as Linking from "expo-linking";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
@@ -98,6 +101,40 @@ export default function ProductDetailScreen() {
     setToast("Added to cart");
   };
 
+  const handleShare = async () => {
+    const priceText = `$${product.price.toFixed(2)}`;
+    const title = product.name;
+    const message = `Check out ${product.name}${product.brand ? ` by ${product.brand}` : ""} — ${priceText}`;
+    const g = globalThis as any;
+    // Web: share the live page URL; native: a deep link into the app.
+    const link =
+      Platform.OS === "web" && g.location?.href
+        ? g.location.href
+        : Linking.createURL(`/product/${product.id}`);
+
+    try {
+      if (Platform.OS === "web") {
+        if (g.navigator?.share) {
+          await g.navigator.share({ title, text: message, url: link });
+        } else if (g.navigator?.clipboard?.writeText) {
+          await g.navigator.clipboard.writeText(`${message}\n${link}`);
+          setToast("Link copied to clipboard");
+        } else {
+          setToast("Sharing isn't supported on this browser");
+        }
+        return;
+      }
+      // iOS shows `url` separately; Android uses only `message`, so embed the link there.
+      await Share.share(
+        Platform.OS === "ios"
+          ? { title, message, url: link }
+          : { title, message: `${message}\n${link}` },
+      );
+    } catch {
+      // Share sheet dismissed or failed — no-op.
+    }
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -110,7 +147,7 @@ export default function ProductDetailScreen() {
               color={wishlisted ? Colors.error : Colors.text.primary}
               onPress={handleToggleWishlist}
             />
-            <CircleButton icon="share-variant" onPress={() => setToast("Share coming soon")} />
+            <CircleButton icon="share-variant" onPress={handleShare} />
             <View>
               <CircleButton icon="cart-outline" onPress={() => router.push("/(tabs)/cart")} />
               {cartCount > 0 ? (
