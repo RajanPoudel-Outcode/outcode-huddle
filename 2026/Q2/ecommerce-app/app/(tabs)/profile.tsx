@@ -1,17 +1,25 @@
-import { Button, ProfileHeader, ProfileMenuItem } from "@/components/ui";
+import { Button, Dialog, ProfileHeader, ProfileMenuItem } from "@/components/ui";
 import { buildAssetUrl } from "@/constants/config";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Colors, Spacing, TextStyles } from "@/constants/theme";
 import { useAuth } from "@/features/auth";
 import { useRouter } from "expo-router";
+import { useState } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, isAuthenticated, logout } = useAuth();
+  const [confirm, setConfirm] = useState<"logout" | "delete" | null>(null);
 
   const avatarUri = buildAssetUrl(user?.avatar);
 
   const handleLogout = () => {
+    setConfirm("logout");
+  };
+
+  const confirmLogout = () => {
+    setConfirm(null);
     // useAuth clears persistent storage and resets Redux auth state.
     // The root layout's auth effect handles redirecting to login.
     logout();
@@ -30,8 +38,13 @@ export default function ProfileScreen() {
   };
 
   const handleAccountDeletion = () => {
-    // Show confirmation dialog
-    console.log("Account deletion");
+    setConfirm("delete");
+  };
+
+  const confirmAccountDeletion = () => {
+    setConfirm(null);
+    // Account deletion is not wired to a backend endpoint yet.
+    console.log("Account deletion confirmed");
   };
 
   const handleFaq = () => {
@@ -48,6 +61,10 @@ export default function ProfileScreen() {
 
   const handleSupport = () => {
     router.push("/support");
+  };
+
+  const handleMyOrders = () => {
+    router.push("/orders");
   };
 
   return (
@@ -79,36 +96,42 @@ export default function ProfileScreen() {
 
           {/* Account Menu Items */}
           <ProfileMenuItem
-            icon={<Text style={styles.icon}>❤️</Text>}
+            icon={<MenuIcon name="heart-outline" />}
             label="My Wishlist"
             onPress={handleWishlist}
             isFirst
           />
 
           <ProfileMenuItem
-            icon={<Text style={styles.icon}>🔑</Text>}
+            icon={<MenuIcon name="package-variant-closed" />}
+            label="My Orders"
+            onPress={handleMyOrders}
+          />
+
+          <ProfileMenuItem
+            icon={<MenuIcon name="lock-outline" />}
             label="Change Password"
             onPress={handleChangePassword}
           />
 
           <ProfileMenuItem
-            icon={<Text style={styles.icon}>❓</Text>}
+            icon={<MenuIcon name="help-circle-outline" />}
             label="FAQ"
             onPress={handleFaq}
           />
           <ProfileMenuItem
-            icon={<Text style={styles.icon}>📄</Text>}
+            icon={<MenuIcon name="file-document-outline" />}
             label="Terms and Conditions"
             onPress={handleTerms}
           />
           <ProfileMenuItem
-            icon={<Text style={styles.icon}>🔒</Text>}
+            icon={<MenuIcon name="shield-lock-outline" />}
             label="Privacy Policy"
             onPress={handlePrivacy}
           />
 
           <ProfileMenuItem
-            icon={<Text style={styles.icon}>🆘</Text>}
+            icon={<MenuIcon name="lifebuoy" />}
             label="Support Request"
             onPress={handleSupport}
           />
@@ -129,7 +152,39 @@ export default function ProfileScreen() {
           </View>
         </>
       )}
+
+      <Dialog
+        visible={confirm === "logout"}
+        title="Log out?"
+        message="You'll need to sign in again to access your account."
+        variant="warning"
+        confirmText="Log Out"
+        dismissText="Cancel"
+        onDismiss={() => setConfirm(null)}
+        onConfirm={confirmLogout}
+      />
+
+      <Dialog
+        visible={confirm === "delete"}
+        title="Delete account?"
+        message="This permanently deletes your account and all its data. This can't be undone."
+        variant="error"
+        confirmText="Delete"
+        dismissText="Cancel"
+        onDismiss={() => setConfirm(null)}
+        onConfirm={confirmAccountDeletion}
+      />
     </View>
+  );
+}
+
+function MenuIcon({
+  name,
+}: {
+  name: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+}) {
+  return (
+    <MaterialCommunityIcons name={name} size={22} color={Colors.text.primary} />
   );
 }
 
@@ -165,9 +220,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     minHeight: 120,
     justifyContent: "center",
-  },
-  icon: {
-    fontSize: 20,
   },
   avatar: {
     width: 60,
