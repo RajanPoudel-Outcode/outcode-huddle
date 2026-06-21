@@ -7,15 +7,17 @@ import {
   setCurrentPage,
   setHasViewedOnboarding,
 } from "@/store/slices/onboardingSlice";
-import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   Animated,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
-import PagerView from "react-native-pager-view";
 import { ONBOARDING_DATA } from "./onboardingModel";
 
 const styles = StyleSheet.create({
@@ -39,7 +41,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   pageContainer: {
-    flex: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: Spacing.xl,
@@ -87,31 +88,37 @@ const styles = StyleSheet.create({
 
 export default function OnboardingScreen() {
   const dispatch = useAppDispatch();
-  const router = useRouter();
   const currentPage = useAppSelector(
     (state: RootState) => state.onboarding.currentPage,
   );
-  const pagerViewRef = useRef<PagerView>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const { width: windowWidth } = useWindowDimensions();
+  const [size, setSize] = useState({ width: windowWidth, height: 0 });
   const [localPage, setLocalPage] = useState(0);
 
+  // Sync scroll position when the page changes from outside (e.g. restored state).
   useEffect(() => {
-    pagerViewRef.current?.setPage(currentPage);
-  }, [currentPage]);
+    scrollRef.current?.scrollTo({ x: currentPage * size.width, animated: true });
+  }, [currentPage, size.width]);
 
-  const handleSkip = async () => {
+  // Mark onboarding complete and persist it. The root layout watches
+  // `hasViewedOnboarding` and, once true, mounts the navigator and routes to
+  // the tabs (if authenticated) or the login screen. We must NOT call `router`
+  // here: onboarding renders outside the navigator, so navigating from this
+  // screen happens before the Root Layout's <Stack> is mounted.
+  const completeOnboarding = async () => {
     await storageService.setItem("hasViewedOnboarding", "true");
     dispatch(setHasViewedOnboarding(true));
-    router.replace("/(tabs)");
   };
 
-  const handleGetStarted = async () => {
-    await storageService.setItem("hasViewedOnboarding", "true");
-    dispatch(setHasViewedOnboarding(true));
-    router.replace("/(tabs)");
-  };
+  const handleSkip = completeOnboarding;
+  const handleGetStarted = completeOnboarding;
 
-  const handlePageSelected = (e: any) => {
-    const page = e.nativeEvent.position;
+  const handleMomentumScrollEnd = (
+    e: NativeSyntheticEvent<NativeScrollEvent>,
+  ) => {
+    if (size.width === 0) return;
+    const page = Math.round(e.nativeEvent.contentOffset.x / size.width);
     setLocalPage(page);
     dispatch(setCurrentPage(page));
   };
@@ -128,23 +135,40 @@ export default function OnboardingScreen() {
         />
       </View>
 
-      {/* PageView Carousel */}
-      <PagerView
-        ref={pagerViewRef}
+      {/* Swipeable carousel (cross-platform: works on iOS, Android & web) */}
+      <View
         style={styles.pagerView}
-        initialPage={0}
-        onPageSelected={handlePageSelected}
+        onLayout={(e) =>
+          setSize({
+            width: e.nativeEvent.layout.width,
+            height: e.nativeEvent.layout.height,
+          })
+        }
       >
-        {ONBOARDING_DATA.map((item) => (
-          <View key={item.id} style={styles.pageContainer}>
-            <Text style={styles.icon}>{item.icon}</Text>
-            <Text style={[TextStyles.h1, styles.title]}>{item.title}</Text>
-            <Text style={[TextStyles.body, styles.description]}>
-              {item.description}
-            </Text>
-          </View>
-        ))}
-      </PagerView>
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={handleMomentumScrollEnd}
+        >
+          {ONBOARDING_DATA.map((item) => (
+            <View
+              key={item.id}
+              style={[
+                styles.pageContainer,
+                { width: size.width, height: size.height },
+              ]}
+            >
+              <Text style={styles.icon}>{item.icon}</Text>
+              <Text style={[TextStyles.h1, styles.title]}>{item.title}</Text>
+              <Text style={[TextStyles.body, styles.description]}>
+                {item.description}
+              </Text>
+            </View>
+          ))}
+        </ScrollView>
+      </View>
 
       {/* Dots Indicator */}
       <View style={styles.dotsContainer}>

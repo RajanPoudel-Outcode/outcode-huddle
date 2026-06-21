@@ -12,3 +12,4 @@ export type {
   ProductQuery,
   ProductSpecification,
 } from "./types/product.types";
+
