@@ -35,4 +35,8 @@ export const authService = {
       retryCount: 1,
     });
   },
+
+  /** Soft-delete the authenticated user's account. */
+  deleteAccount: (): Promise<ApiResponse<null>> =>
+    networkService.delete<null>("/auth/account", { cache: false }),
 };

@@ -47,6 +47,9 @@ export const authMiddleware = async (
       if (!user) {
         throw new UnauthorizedError('User not found');
       }
+      if (user.isDeleted) {
+        throw new UnauthorizedError('This account has been deleted');
+      }
 
       // Attach user and token to request with consistent id field
       const userObj = user.toObject();

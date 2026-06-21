@@ -1,5 +1,12 @@
-import { Button, Dialog, ProfileHeader, ProfileMenuItem } from "@/components/ui";
+import {
+  Button,
+  Dialog,
+  ProfileHeader,
+  ProfileMenuItem,
+  Snackbar,
+} from "@/components/ui";
 import { buildAssetUrl } from "@/constants/config";
+import { ErrorHandler } from "@/utils/error-handler";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Colors, Spacing, TextStyles } from "@/constants/theme";
 import { useAuth } from "@/features/auth";
@@ -9,8 +16,9 @@ import { Image, StyleSheet, Text, View } from "react-native";
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, deleteAccount } = useAuth();
   const [confirm, setConfirm] = useState<"logout" | "delete" | null>(null);
+  const [toast, setToast] = useState("");
 
   const avatarUri = buildAssetUrl(user?.avatar);
 
@@ -41,10 +49,15 @@ export default function ProfileScreen() {
     setConfirm("delete");
   };
 
-  const confirmAccountDeletion = () => {
+  const confirmAccountDeletion = async () => {
     setConfirm(null);
-    // Account deletion is not wired to a backend endpoint yet.
-    console.log("Account deletion confirmed");
+    try {
+      // Soft-deletes on the server, then clears the session; the root layout
+      // redirects to login once auth state resets.
+      await deleteAccount();
+    } catch (err) {
+      setToast(ErrorHandler.getUserMessage(err));
+    }
   };
 
   const handleFaq = () => {
@@ -173,6 +186,13 @@ export default function ProfileScreen() {
         dismissText="Cancel"
         onDismiss={() => setConfirm(null)}
         onConfirm={confirmAccountDeletion}
+      />
+
+      <Snackbar
+        visible={!!toast}
+        message={toast}
+        variant="error"
+        onDismiss={() => setToast("")}
       />
     </View>
   );
