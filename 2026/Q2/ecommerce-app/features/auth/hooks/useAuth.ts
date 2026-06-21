@@ -13,6 +13,7 @@ import {
   signUp,
 } from "@/store/slices/authSlice";
 import { useCallback } from "react";
+import { authService } from "../services/auth.service";
 import type { SignInPayload, SignUpPayload } from "../types/auth.types";
 
 export function useAuth() {
@@ -38,6 +39,12 @@ export function useAuth() {
 
   const logout = useCallback(() => dispatch(logoutUser()).unwrap(), [dispatch]);
 
+  // Soft-delete the account on the server, then clear the local session.
+  const deleteAccount = useCallback(async () => {
+    await authService.deleteAccount();
+    await dispatch(logoutUser()).unwrap();
+  }, [dispatch]);
+
   const clearError = useCallback(() => dispatch(setError(null)), [dispatch]);
 
   return {
@@ -48,6 +55,7 @@ export function useAuth() {
     signIn: signInUser,
     signUp: signUpUser,
     logout,
+    deleteAccount,
     clearError,
   };
 }
