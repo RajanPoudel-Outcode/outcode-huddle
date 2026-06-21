@@ -3,7 +3,6 @@ import { Colors, Spacing, TextStyles } from "@/constants/theme";
 import { useAppDispatch, useAppSelector } from "@/hooks/useRedux";
 import type { RootState } from "@/store";
 import {
-  clearCart,
   removeFromCart,
   updateQuantity,
   type CartItem,
@@ -33,37 +32,71 @@ export default function CartScreen() {
   const total = items.length > 0 ? subtotal + SHIPPING : 0;
 
   const renderItem = ({ item }: { item: CartItem }) => (
-    <Pressable style={styles.card} onPress={() => router.push(`/product/${item.productId}`)}>
-      <Image source={{ uri: item.image }} style={styles.image} resizeMode="cover" />
+    <Pressable
+      style={styles.card}
+      onPress={() => router.push(`/product/${item.productId}`)}
+    >
+      <Image
+        source={{ uri: item.image }}
+        style={styles.image}
+        resizeMode="cover"
+      />
       <View style={styles.info}>
         <Text style={styles.name} numberOfLines={1}>
           {item.name}
         </Text>
         {item.brand ? <Text style={styles.brand}>{item.brand}</Text> : null}
-        {item.color ? <Text style={styles.variant}>Color: {item.color}</Text> : null}
+        {item.color ? (
+          <Text style={styles.variant}>Color: {item.color}</Text>
+        ) : null}
         <Text style={styles.price}>${item.price.toFixed(2)}</Text>
       </View>
       <View style={styles.actions}>
-        <Pressable onPress={() => dispatch(removeFromCart(item.productId))} hitSlop={8}>
-          <MaterialCommunityIcons name="trash-can-outline" size={20} color={Colors.text.secondary} />
+        <Pressable
+          onPress={() => dispatch(removeFromCart(item.productId))}
+          hitSlop={8}
+        >
+          <MaterialCommunityIcons
+            name="trash-can-outline"
+            size={20}
+            color={Colors.text.secondary}
+          />
         </Pressable>
         <View style={styles.stepper}>
           <Pressable
             style={styles.stepBtn}
             onPress={() =>
-              dispatch(updateQuantity({ productId: item.productId, quantity: item.quantity - 1 }))
+              dispatch(
+                updateQuantity({
+                  productId: item.productId,
+                  quantity: item.quantity - 1,
+                }),
+              )
             }
           >
-            <MaterialCommunityIcons name="minus" size={16} color={Colors.text.primary} />
+            <MaterialCommunityIcons
+              name="minus"
+              size={16}
+              color={Colors.text.primary}
+            />
           </Pressable>
           <Text style={styles.qty}>{item.quantity}</Text>
           <Pressable
             style={styles.stepBtn}
             onPress={() =>
-              dispatch(updateQuantity({ productId: item.productId, quantity: item.quantity + 1 }))
+              dispatch(
+                updateQuantity({
+                  productId: item.productId,
+                  quantity: item.quantity + 1,
+                }),
+              )
             }
           >
-            <MaterialCommunityIcons name="plus" size={16} color={Colors.text.primary} />
+            <MaterialCommunityIcons
+              name="plus"
+              size={16}
+              color={Colors.text.primary}
+            />
           </Pressable>
         </View>
       </View>
@@ -74,17 +107,18 @@ export default function CartScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={TextStyles.h1}>Cart</Text>
-        {items.length > 0 ? (
-          <Pressable onPress={() => dispatch(clearCart())} hitSlop={8}>
-            <MaterialCommunityIcons name="trash-can-outline" size={24} color={Colors.text.primary} />
-          </Pressable>
-        ) : null}
       </View>
 
       {items.length === 0 ? (
         <View style={styles.center}>
-          <MaterialCommunityIcons name="cart-outline" size={56} color={Colors.gray[30]} />
-          <Text style={[TextStyles.h3, { marginTop: Spacing.sm }]}>Your cart is empty</Text>
+          <MaterialCommunityIcons
+            name="cart-outline"
+            size={56}
+            color={Colors.gray[30]}
+          />
+          <Text style={[TextStyles.h3, { marginTop: Spacing.sm }]}>
+            Your cart is empty
+          </Text>
           <Text style={TextStyles.body}>Add items to get started</Text>
         </View>
       ) : (
@@ -99,13 +133,21 @@ export default function CartScreen() {
 
           {/* Promo (UI only) */}
           <View style={styles.promo}>
-            <MaterialCommunityIcons name="ticket-percent-outline" size={20} color={Colors.text.secondary} />
+            <MaterialCommunityIcons
+              name="ticket-percent-outline"
+              size={20}
+              color={Colors.text.secondary}
+            />
             <TextInput
               style={styles.promoInput}
               placeholder="Enter Promo Code"
               placeholderTextColor={Colors.text.secondary}
             />
-            <MaterialCommunityIcons name="chevron-right" size={22} color={Colors.text.secondary} />
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={22}
+              color={Colors.text.secondary}
+            />
           </View>
 
           {/* Summary */}
@@ -124,12 +166,25 @@ export default function CartScreen() {
         </>
       )}
 
-      <Snackbar visible={!!toast} message={toast} variant="info" onDismiss={() => setToast("")} />
+      <Snackbar
+        visible={!!toast}
+        message={toast}
+        variant="info"
+        onDismiss={() => setToast("")}
+      />
     </View>
   );
 }
 
-function Row({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
+function Row({
+  label,
+  value,
+  bold,
+}: {
+  label: string;
+  value: string;
+  bold?: boolean;
+}) {
   return (
     <View style={styles.row}>
       <Text style={[TextStyles.body, bold && styles.bold]}>{label}</Text>
@@ -139,14 +194,23 @@ function Row({ label, value, bold }: { label: string; value: string; bold?: bool
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bg.primary, paddingHorizontal: Spacing.md },
+  container: {
+    flex: 1,
+    backgroundColor: Colors.bg.primary,
+    paddingHorizontal: Spacing.md,
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: Spacing.md,
   },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: Spacing.xs },
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.xs,
+  },
   list: { paddingBottom: Spacing.md, gap: Spacing.md },
   card: {
     flexDirection: "row",
@@ -157,7 +221,12 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     gap: Spacing.md,
   },
-  image: { width: 72, height: 72, borderRadius: 10, backgroundColor: Colors.gray[10] },
+  image: {
+    width: 72,
+    height: 72,
+    borderRadius: 10,
+    backgroundColor: Colors.gray[10],
+  },
   info: { flex: 1, justifyContent: "center" },
   name: { ...TextStyles.h4 },
   brand: { ...TextStyles.caption, color: Colors.primary },
