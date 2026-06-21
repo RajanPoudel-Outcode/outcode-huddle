@@ -30,7 +30,7 @@ export class ProductsController {
   async getProducts(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const query: IProductQuery = req.query as any;
-      const result = await this.productsService.getProducts(query);
+      const result = await this.productsService.getProducts(query, req.user?.id);
 
       const response = createApiResponse(true, 'Products retrieved successfully',result,result.pagination );
       res.status(200).json(response);
@@ -52,7 +52,7 @@ export class ProductsController {
         return;
       }
       
-      const product = await this.productsService.getProductById(id);
+      const product = await this.productsService.getProductById(id, req.user?.id);
 
       const response = createApiResponse(true, 'Product retrieved successfully', product);
       res.status(200).json(response);
@@ -78,7 +78,7 @@ export class ProductsController {
         });
       }
 
-      const result = await this.productsService.searchProducts(search, query);
+      const result = await this.productsService.searchProducts(search, query, req.user?.id);
 
       res.status(200).json({
         success: true,
@@ -267,7 +267,7 @@ export class ProductsController {
         });
       }
 
-      const result = await this.productsService.getProductsByCategory(category, query);
+      const result = await this.productsService.getProductsByCategory(category, query, req.user?.id);
 
       res.status(200).json({
         success: true,
@@ -286,7 +286,7 @@ export class ProductsController {
   async getFeaturedProducts(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const limit = parseInt(req.query.limit as string) || 10;
-      const products = await this.productsService.getFeaturedProducts(limit);
+      const products = await this.productsService.getFeaturedProducts(limit, req.user?.id);
 
       const response = createApiResponse(true, 'Featured products retrieved successfully', { 
         products: products,

@@ -64,7 +64,33 @@ export const createProductSchema = Joi.object({
     .messages({
       'number.integer': 'Count in stock must be a whole number',
       'number.min': 'Count in stock cannot be negative'
+    }),
+
+  brand: Joi.string().trim().allow('').max(50).optional(),
+
+  originalPrice: Joi.number().positive().precision(2).optional().messages({
+    'number.positive': 'Original price must be a positive number'
+  }),
+
+  numReviews: Joi.number().integer().min(0).optional(),
+
+  colors: Joi.array().items(
+    Joi.object({
+      name: Joi.string().trim().required(),
+      hex: Joi.string().trim().required()
     })
+  ).optional(),
+
+  storageOptions: Joi.array().items(Joi.string().trim()).optional(),
+
+  specifications: Joi.array().items(
+    Joi.object({
+      label: Joi.string().trim().required(),
+      icon: Joi.string().trim().allow('').optional()
+    })
+  ).optional(),
+
+  isFeatured: Joi.boolean().optional()
 });
 
 export const updateProductSchema = Joi.object({
@@ -122,7 +148,33 @@ export const updateProductSchema = Joi.object({
     .messages({
       'number.integer': 'Count in stock must be a whole number',
       'number.min': 'Count in stock cannot be negative'
+    }),
+
+  brand: Joi.string().trim().allow('').max(50).optional(),
+
+  originalPrice: Joi.number().positive().precision(2).optional().messages({
+    'number.positive': 'Original price must be a positive number'
+  }),
+
+  numReviews: Joi.number().integer().min(0).optional(),
+
+  colors: Joi.array().items(
+    Joi.object({
+      name: Joi.string().trim().required(),
+      hex: Joi.string().trim().required()
     })
+  ).optional(),
+
+  storageOptions: Joi.array().items(Joi.string().trim()).optional(),
+
+  specifications: Joi.array().items(
+    Joi.object({
+      label: Joi.string().trim().required(),
+      icon: Joi.string().trim().allow('').optional()
+    })
+  ).optional(),
+
+  isFeatured: Joi.boolean().optional()
 });
 
 export const addReviewSchema = Joi.object({
@@ -200,6 +252,12 @@ export const productQuerySchema = Joi.object({
     .optional()
     .messages({
       'string.empty': 'Search term cannot be empty'
+    }),
+
+  featured: Joi.boolean()
+    .optional()
+    .messages({
+      'boolean.base': 'Featured must be a boolean'
     }),
 
   sortBy: Joi.string()

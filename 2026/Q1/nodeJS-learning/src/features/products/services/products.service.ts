@@ -7,25 +7,53 @@ import {
     IProductResponse,
     IUpdateProductRequest
 } from '@/features/products/types/products.types';
+import { Wishlist } from '@/features/wishlist/models/wishlist.model';
 import { ConflictError, NotFoundError, ValidationError } from '@/shared/exception/error_handler';
 
 export class ProductsService {
   /**
+   * Resolve the set of product ids in a user's wishlist (empty if no user).
+   * Used to flag `isWishlisted` on product responses.
+   */
+  private async getWishlistProductIds(userId?: string): Promise<Set<string>> {
+    if (!userId) {
+      return new Set();
+    }
+    const wishlist = await Wishlist.findOne({ user: userId }).select('products').lean();
+    if (!wishlist) {
+      return new Set();
+    }
+    return new Set((wishlist.products as any[]).map((id) => id.toString()));
+  }
+
+  /**
    * Create user-friendly product response
    */
-  private createProductResponse(product: IProductDocument): IProductResponse {
+  private createProductResponse(
+    product: IProductDocument,
+    wishlistIds?: Set<string>,
+  ): IProductResponse {
     const productObj = product.toObject();
+    const id = (productObj._id as any).toString();
     return {
-      id: (productObj._id as any).toString(),
+      id,
       name: productObj.name,
       description: productObj.description,
       images: productObj.images || [],
       quantity: productObj.quantity,
       price: productObj.price,
+      originalPrice: productObj.originalPrice,
       category: productObj.category,
+      brand: productObj.brand || '',
       rating: productObj.rating || 0,
+      numReviews: productObj.numReviews || 0,
       review: productObj.review || [],
       countInStock: productObj.countInStock || 0,
+      colors: productObj.colors || [],
+      storageOptions: productObj.storageOptions || [],
+      specifications: productObj.specifications || [],
+      isFeatured: productObj.isFeatured || false,
+      isWishlisted: wishlistIds?.has(id) ?? false,
       createdAt: productObj.createdAt,
       updatedAt: productObj.updatedAt
     };
@@ -39,6 +67,10 @@ export class ProductsService {
 
     if (query.category) {
       filter.category = { $regex: query.category, $options: 'i' };
+    }
+
+    if (query.featured !== undefined) {
+      filter.isFeatured = query.featured;
     }
 
     if (query.search) {
@@ -74,7 +106,7 @@ export class ProductsService {
   /**
    * Get all products with pagination and filtering
    */
-  async getProducts(query: IProductQuery): Promise<IPaginatedProductsResponse> {
+  async getProducts(query: IProductQuery, userId?: string): Promise<IPaginatedProductsResponse> {
     const page = query.page || 1;
     const limit = query.limit || 10;
     const skip = (page - 1) * limit;
@@ -82,17 +114,18 @@ export class ProductsService {
     const filter = this.buildFilter(query);
     const sort = this.buildSort(query);
 
-    const [products, totalCount] = await Promise.all([
+    const [products, totalCount, wishlistIds] = await Promise.all([
       Product.find(filter)
         .sort(sort)
         .skip(skip)
         .limit(limit),
-      Product.countDocuments(filter)
+      Product.countDocuments(filter),
+      this.getWishlistProductIds(userId)
     ]);
 
     const totalPages = Math.ceil(totalCount / limit);
 
-    const productsArray = products.map(product => this.createProductResponse(product));
+    const productsArray = products.map(product => this.createProductResponse(product, wishlistIds));
 
     // Create array with pagination property
     const result = productsArray as IPaginatedProductsResponse;
@@ -111,28 +144,29 @@ export class ProductsService {
   /**
    * Get single product by ID
    */
-  async getProductById(productId: string | undefined): Promise<IProductResponse> {
+  async getProductById(productId: string | undefined, userId?: string): Promise<IProductResponse> {
     if (!productId) {
       throw new ValidationError('Product ID is required');
     }
-    
+
     const product = await Product.findById(productId);
     if (!product) {
       throw new NotFoundError('Product not found');
     }
 
-    return this.createProductResponse(product);
+    const wishlistIds = await this.getWishlistProductIds(userId);
+    return this.createProductResponse(product, wishlistIds);
   }
 
   /**
    * Search products by name
    */
-  async searchProducts(searchTerm: string | undefined, query: IProductQuery): Promise<IPaginatedProductsResponse> {
+  async searchProducts(searchTerm: string | undefined, query: IProductQuery, userId?: string): Promise<IPaginatedProductsResponse> {
     if (!searchTerm) {
       throw new ValidationError('Search term is required');
     }
     const searchQuery = { ...query, search: searchTerm };
-    return this.getProducts(searchQuery);
+    return this.getProducts(searchQuery, userId);
   }
 
   /**
@@ -152,9 +186,16 @@ export class ProductsService {
       name: productData.name.trim(),
       description: productData.description.trim(),
       price: productData.price,
+      originalPrice: productData.originalPrice,
       category: productData.category.trim(),
+      brand: productData.brand?.trim() || '',
       quantity: productData.quantity,
       countInStock: productData.countInStock || 1,
+      numReviews: productData.numReviews || 0,
+      colors: productData.colors || [],
+      storageOptions: productData.storageOptions || [],
+      specifications: productData.specifications || [],
+      isFeatured: productData.isFeatured || false,
       images: imagePaths || [],
       rating: 0,
       review: []
@@ -198,9 +239,16 @@ export class ProductsService {
     if (updateData.name) updates.name = updateData.name.trim();
     if (updateData.description) updates.description = updateData.description.trim();
     if (updateData.price !== undefined) updates.price = updateData.price;
+    if (updateData.originalPrice !== undefined) updates.originalPrice = updateData.originalPrice;
     if (updateData.category) updates.category = updateData.category.trim();
+    if (updateData.brand !== undefined) updates.brand = updateData.brand.trim();
     if (updateData.quantity !== undefined) updates.quantity = updateData.quantity;
     if (updateData.countInStock !== undefined) updates.countInStock = updateData.countInStock;
+    if (updateData.numReviews !== undefined) updates.numReviews = updateData.numReviews;
+    if (updateData.colors !== undefined) updates.colors = updateData.colors;
+    if (updateData.storageOptions !== undefined) updates.storageOptions = updateData.storageOptions;
+    if (updateData.specifications !== undefined) updates.specifications = updateData.specifications;
+    if (updateData.isFeatured !== undefined) updates.isFeatured = updateData.isFeatured;
     if (imagePaths && imagePaths.length > 0) updates.images = imagePaths;
 
     const updatedProduct = await Product.findByIdAndUpdate(
@@ -335,23 +383,24 @@ export class ProductsService {
   /**
    * Get products by category
    */
-  async getProductsByCategory(category: string | undefined, query: IProductQuery): Promise<IPaginatedProductsResponse> {
+  async getProductsByCategory(category: string | undefined, query: IProductQuery, userId?: string): Promise<IPaginatedProductsResponse> {
     if (!category) {
       throw new ValidationError('Category is required');
     }
     const categoryQuery = { ...query, category };
-    return this.getProducts(categoryQuery);
+    return this.getProducts(categoryQuery, userId);
   }
 
   /**
    * Get featured products (highest rated)
    */
-  async getFeaturedProducts(limit: number = 10): Promise<IPaginatedProductsResponse> {
-    const totalCount = await Product.countDocuments({});
-    const products = await Product.find({})
-      .sort({ rating: -1, createdAt: -1 })
-      .limit(limit)
-      .lean();
+  async getFeaturedProducts(limit: number = 10, userId?: string): Promise<IPaginatedProductsResponse> {
+    const filter = { isFeatured: true };
+    const [totalCount, products, wishlistIds] = await Promise.all([
+      Product.countDocuments(filter),
+      Product.find(filter).sort({ rating: -1, createdAt: -1 }).limit(limit).lean(),
+      this.getWishlistProductIds(userId)
+    ]);
 
     // Convert products to response format
     const productsArray = products.map(product => ({
@@ -361,10 +410,18 @@ export class ProductsService {
       images: product.images || [],
       quantity: product.quantity,
       price: product.price,
+      originalPrice: product.originalPrice,
       category: product.category,
+      brand: product.brand || '',
       rating: product.rating || 0,
+      numReviews: product.numReviews || 0,
       review: product.review || [],
       countInStock: product.countInStock || 0,
+      colors: product.colors || [],
+      storageOptions: product.storageOptions || [],
+      specifications: product.specifications || [],
+      isFeatured: product.isFeatured || false,
+      isWishlisted: wishlistIds.has(product._id.toString()),
       createdAt: product.createdAt || new Date(),
       updatedAt: product.updatedAt || new Date()
     }));

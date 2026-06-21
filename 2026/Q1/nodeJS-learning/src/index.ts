@@ -1,21 +1,32 @@
 // Load environment variables first
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 dotenv.config();
 
-import { connectionDatabase } from '@/shared/utils/db';
-import cors from 'cors';
-import express, { Application } from 'express';
+import { connectionDatabase } from "@/shared/utils/db";
+import cors from "cors";
+import express, { Application } from "express";
 
 // Import feature routes
-import adminRoutes from '@/features/admin/routes/admin.routes';
-import authRoutes from '@/features/auth/routes/auth.routes';
-import ordersRoutes from '@/features/orders/routes/orders.routes';
-import productsRoutes from '@/features/products/routes/products.routes';
-import { responseMiddleware } from '@/shared/middlewares/response.middleware';
-import { errorHandler, handleUncaughtException, handleUnhandledRejection, notFound } from '@/shared/utils/error';
+import adminRoutes from "@/features/admin/routes/admin.routes";
+import authRoutes from "@/features/auth/routes/auth.routes";
+import categoriesRoutes from "@/features/categories/routes/categories.routes";
+import contentRoutes from "@/features/content/routes/content.routes";
+import faqRoutes from "@/features/faq/routes/faq.routes";
+import ordersRoutes from "@/features/orders/routes/orders.routes";
+import productsRoutes from "@/features/products/routes/products.routes";
+import supportRoutes from "@/features/support/routes/support.routes";
+import wishlistRoutes from "@/features/wishlist/routes/wishlist.routes";
+import { responseMiddleware } from "@/shared/middlewares/response.middleware";
+import swaggerRoutes from "@/shared/swagger/swagger.routes";
+import {
+  errorHandler,
+  handleUncaughtException,
+  handleUnhandledRejection,
+  notFound,
+} from "@/shared/utils/error";
 
 // Handle uncaught exceptions
-process.on('uncaughtException', handleUncaughtException);
+process.on("uncaughtException", handleUncaughtException);
 
 // Database connection
 connectionDatabase();
@@ -26,84 +37,110 @@ const PORT: string | number = process.env.PORT || 3000;
 
 // Recommended CORS configuration for development
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL || 'http://localhost:3000'
-    : ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000'],
+  origin: [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "http://192.168.1.3:3001",
+    "http://192.168.1.3:3000",
+    "http://192.168.10.104:3000",
+    "http://192.168.10.104:3001",
+  ],
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
 };
 
 // Middleware
 app.use(cors(corsOptions));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// Serve uploaded files (e.g. profile images) statically at /uploads
+app.use("/uploads", express.static("uploads"));
+
+// API documentation (Swagger UI at /api/docs, spec at /api/docs.json).
+// Mounted before responseMiddleware so the raw OpenAPI spec isn't wrapped.
+app.use("/api", swaggerRoutes);
 
 // Add metadata to all API responses
-app.use('/api', responseMiddleware);
+app.use("/api", responseMiddleware);
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
+app.get("/api/health", (req, res) => {
   res.status(200).json({
-    status: 'success',
-    message: 'Server is running',
+    status: "success",
+    message: "Server is running",
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    uptime: process.uptime(),
   });
 });
 
 // API Info endpoint
-app.get('/api/info', (req, res) => {
+app.get("/api/info", (req, res) => {
   res.status(200).json({
-    message: 'E-commerce API with Feature-Based Architecture',
-    version: '2.0.0',
+    message: "E-commerce API with Feature-Based Architecture",
+    version: "2.0.0",
     features: [
-      'Authentication & Authorization',
-      'Product Management',
-      'Order Management',
-      'Admin Dashboard & Analytics',
-      'User Management (Admin)',
-      'Joi Validation Decorators',
-      'Feature-Based Architecture'
+      "Authentication & Authorization",
+      "Product Management",
+      "Order Management",
+      "Admin Dashboard & Analytics",
+      "User Management (Admin)",
+      "Joi Validation Decorators",
+      "Feature-Based Architecture",
     ],
     endpoints: {
-      auth: '/api/auth',
-      products: '/api/products',
-      orders: '/api/orders',
-      admin: '/api/admin'
+      auth: "/api/auth",
+      products: "/api/products",
+      categories: "/api/categories",
+      wishlist: "/api/wishlist",
+      orders: "/api/orders",
+      faq: "/api/faq",
+      content: "/api/content",
+      support: "/api/support",
+      admin: "/api/admin",
     },
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 
 // Feature-based API routes
-app.use('/api/auth', authRoutes);
-app.use('/api/products', productsRoutes);
-app.use('/api/orders', ordersRoutes);
-app.use('/api/admin', adminRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/products", productsRoutes);
+app.use("/api/categories", categoriesRoutes);
+app.use("/api/wishlist", wishlistRoutes);
+app.use("/api/orders", ordersRoutes);
+app.use("/api/faq", faqRoutes);
+app.use("/api/content", contentRoutes);
+app.use("/api/support", supportRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Error handlers (must be last)
 app.use(notFound);
 app.use(errorHandler);
 
 // Start server
-const server = app.listen(PORT, (): void => {
-    console.log(`Server connected at Port ${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+const server = app.listen(Number(PORT), "0.0.0.0", (): void => {
+  console.log(`Server is running on http://0.0.0.0:${PORT}`);
+  console.log(
+    `Access from frontend at: ${process.env.FRONTEND_URL || "http://localhost:3000"}:${PORT}`,
+  );
+  console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
 });
 
 // Handle unhandled promise rejections
-process.on('unhandledRejection', (err: Error) => {
-  console.error('UNHANDLED REJECTION! 💥 Shutting down...');
-  console.error('Error:', err.name, err.message);
+process.on("unhandledRejection", (err: Error) => {
+  console.error("UNHANDLED REJECTION! 💥 Shutting down...");
+  console.error("Error:", err.name, err.message);
   server.close(() => {
     handleUnhandledRejection(err);
   });
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('👋 SIGTERM RECEIVED. Shutting down gracefully');
+process.on("SIGTERM", () => {
+  console.log("👋 SIGTERM RECEIVED. Shutting down gracefully");
   server.close(() => {
-    console.log('💥 Process terminated!');
+    console.log("💥 Process terminated!");
   });
 });

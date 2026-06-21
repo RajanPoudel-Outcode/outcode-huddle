@@ -4,8 +4,10 @@
  */
 
 import Config from "@/constants/config";
+import type { ApiResponse } from "@/types/api.types";
 import { ApiError, ErrorHandler, NetworkError } from "@/utils/error-handler";
 import { logger } from "@/utils/logger";
+import { tokenStore } from "./session.token";
 import { storageService } from "./storage.service";
 
 interface NetworkRequestOptions {
@@ -14,12 +16,6 @@ interface NetworkRequestOptions {
   cache?: boolean;
   cacheTTL?: number;
   retryCount?: number;
-}
-
-interface NetworkResponse<T> {
-  data: T;
-  status: number;
-  headers: Record<string, string>;
 }
 
 export class NetworkService {
@@ -91,7 +87,7 @@ export class NetworkService {
     endpoint: string,
     params?: Record<string, unknown>,
     options?: NetworkRequestOptions,
-  ): Promise<T> {
+  ): Promise<ApiResponse<T>> {
     const url = this.buildURL(endpoint, params);
     return this.request<T>("GET", url, undefined, options);
   }
@@ -103,7 +99,7 @@ export class NetworkService {
     endpoint: string,
     data?: unknown,
     options?: NetworkRequestOptions,
-  ): Promise<T> {
+  ): Promise<ApiResponse<T>> {
     const url = this.buildURL(endpoint);
     return this.request<T>("POST", url, data, options);
   }
@@ -115,7 +111,7 @@ export class NetworkService {
     endpoint: string,
     data?: unknown,
     options?: NetworkRequestOptions,
-  ): Promise<T> {
+  ): Promise<ApiResponse<T>> {
     const url = this.buildURL(endpoint);
     return this.request<T>("PUT", url, data, options);
   }
@@ -127,7 +123,7 @@ export class NetworkService {
     endpoint: string,
     data?: unknown,
     options?: NetworkRequestOptions,
-  ): Promise<T> {
+  ): Promise<ApiResponse<T>> {
     const url = this.buildURL(endpoint);
     return this.request<T>("PATCH", url, data, options);
   }
@@ -138,7 +134,7 @@ export class NetworkService {
   async delete<T = unknown>(
     endpoint: string,
     options?: NetworkRequestOptions,
-  ): Promise<T> {
+  ): Promise<ApiResponse<T>> {
     const url = this.buildURL(endpoint);
     return this.request<T>("DELETE", url, undefined, options);
   }
@@ -151,7 +147,7 @@ export class NetworkService {
     url: string,
     data?: unknown,
     options: NetworkRequestOptions = {},
-  ): Promise<T> {
+  ): Promise<ApiResponse<T>> {
     const {
       headers = {},
       timeout = this.DEFAULT_TIMEOUT,
@@ -162,7 +158,7 @@ export class NetworkService {
 
     // Check cache for GET requests
     if (method === "GET" && cache) {
-      const cached = await storageService.getCache<T>(url);
+      const cached = await storageService.getCache<ApiResponse<T>>(url);
       if (cached) {
         return cached;
       }
@@ -173,7 +169,7 @@ export class NetworkService {
       logger.warn(`Offline: ${method} ${url}`);
 
       if (method === "GET") {
-        const cached = await storageService.getCache<T>(url);
+        const cached = await storageService.getCache<ApiResponse<T>>(url);
         if (cached) {
           return cached;
         }
@@ -201,20 +197,17 @@ export class NetworkService {
           method,
           url,
           data,
-          {
-            ...headers,
-            "Content-Type": "application/json",
-          },
+          { ...headers },
           timeout,
         );
 
-        // Cache successful GET responses
+        // Cache successful GET responses (full envelope)
         if (method === "GET" && cache) {
-          await storageService.setCache(url, response.data, cacheTTL);
+          await storageService.setCache(url, response, cacheTTL);
         }
 
-        logger.info(`Success: ${method} ${url}`, { status: response.status });
-        return response.data;
+        logger.info(`Success: ${method} ${url}`, { message: response.message });
+        return response;
       } catch (error) {
         lastError = error as Error;
 
@@ -259,66 +252,81 @@ export class NetworkService {
     data: unknown,
     headers: Record<string, string>,
     timeout: number,
-  ): Promise<NetworkResponse<T>> {
+    isRetryAfterRefresh = false,
+  ): Promise<ApiResponse<T>> {
     this.requestCount++;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
+    // FormData (file uploads): let fetch set the multipart boundary itself.
+    const isFormData =
+      typeof FormData !== "undefined" && data instanceof FormData;
+
+    const finalHeaders: Record<string, string> = { ...headers };
+    if (data && method !== "GET" && !isFormData) {
+      finalHeaders["Content-Type"] =
+        finalHeaders["Content-Type"] ?? "application/json";
+    }
+
+    // Attach the bearer token for authenticated endpoints.
+    const accessToken = tokenStore.getAccessToken();
+    if (accessToken) {
+      finalHeaders["Authorization"] = `Bearer ${accessToken}`;
+    }
+
     try {
       const options: RequestInit = {
         method,
-        headers,
+        headers: finalHeaders,
         signal: controller.signal,
       };
 
       if (data && method !== "GET") {
-        options.body = JSON.stringify(data);
-        logger.debug(`Request Body [${method} ${url}]`, data);
+        options.body = isFormData ? (data as FormData) : JSON.stringify(data);
       }
 
-      // Log outgoing request headers
-      logger.debug(`Request Headers [${method} ${url}]`, headers);
-
+      // Log response status
       const response = await fetch(url, options);
-      const responseData = await response.json();
+      const body = await response.json();
+      logger.debug(`Response [${method} ${url}]`, { status: response.status });
 
-      // Extract response headers
-      const responseHeaders = Object.fromEntries(response.headers.entries());
+      // Handle error envelope: { error: true, message, status_code, path, method }
+      if (body.error || !response.ok) {
+        const status = body.status_code ?? response.status;
 
-      // Log response headers and status
-      logger.debug(`Response Headers [${method} ${url}]`, {
-        status: response.status,
-        headers: responseHeaders,
-      });
+        // Expired/invalid access token: refresh once, then retry the request.
+        const lowerUrl = url.toLowerCase();
+        const isAuthEndpoint =
+          lowerUrl.includes("/auth/refresh-token") ||
+          lowerUrl.includes("/auth/signin") ||
+          lowerUrl.includes("/auth/signup");
+        if (status === 401 && !isRetryAfterRefresh && !isAuthEndpoint) {
+          const refreshed = await this.refreshAccessToken();
+          if (refreshed) {
+            clearTimeout(timeoutId);
+            return this.makeRequest<T>(method, url, data, headers, timeout, true);
+          }
+        }
 
-      // Handle error response from API
-      if (responseData.error || !response.ok) {
         const errorMessage =
-          responseData.message ||
-          ErrorHandler.getStatusMessage(response.status);
+          body.message || ErrorHandler.getStatusMessage(response.status);
         throw new ApiError(
-          responseData.status_code || response.status,
+          status,
           `HTTP_${response.status}`,
           errorMessage,
-          `${method} ${url} - ${response.status}`,
+          `${body.method ?? method} ${body.path ?? url} - ${status}`,
         );
       }
 
-      // Extract data from API response format
-      const data_from_response = responseData.data || responseData;
-
-      return {
-        data: data_from_response as T,
-        status: response.status,
-        headers: responseHeaders,
-      };
+      // Return the full success envelope: { success, message, data, meta }
+      return body as ApiResponse<T>;
     } catch (error) {
       if (error instanceof ApiError) {
         throw error;
       }
 
-      if (error instanceof DOMException && error.name === "AbortError") {
+      if (error instanceof Error && error.name === "AbortError") {
         throw new NetworkError(true);
       }
 
@@ -330,10 +338,51 @@ export class NetworkService {
   }
 
   /**
+   * Exchange the refresh token for a new token pair. Returns true on success.
+   * Uses a raw fetch (not the public methods) to avoid recursion/caching.
+   */
+  private async refreshAccessToken(): Promise<boolean> {
+    const refresh = tokenStore.getRefreshToken();
+    if (!refresh) {
+      return false;
+    }
+
+    try {
+      const url = this.buildURL("/auth/refresh-token");
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: refresh }),
+      });
+      const body = await response.json();
+
+      if (!response.ok || body.error) {
+        logger.warn("Token refresh failed");
+        return false;
+      }
+
+      // refresh-token returns the user object (flat) with a fresh `token` pair.
+      const tokens = body?.data?.token;
+      if (tokens?.access_token && tokens?.refresh_token) {
+        await tokenStore.set(tokens);
+        logger.info("Access token refreshed");
+        return true;
+      }
+      return false;
+    } catch (error) {
+      logger.error("Token refresh error", error);
+      return false;
+    }
+  }
+
+  /**
    * Build full URL with params
    */
   private buildURL(endpoint: string, params?: Record<string, unknown>): string {
-    const url = new URL(endpoint, this.baseURL);
+    const cleanEndpoint = endpoint.startsWith("/")
+      ? endpoint.slice(1)
+      : endpoint;
+    const url = new URL(cleanEndpoint, this.baseURL);
 
     if (params) {
       Object.entries(params).forEach(([key, value]) => {

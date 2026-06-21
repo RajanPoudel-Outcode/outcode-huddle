@@ -1,14 +1,6 @@
-import { Button } from "@/components/ui";
+import { Button, Snackbar } from "@/components/ui";
 import { Colors, Spacing, TextStyles } from "@/constants/theme";
-import { useAppDispatch, useAppSelector } from "@/hooks/useRedux";
-import { networkService, storageService } from "@/services";
-import type { RootState } from "@/store";
-import {
-  setError,
-  setLoading,
-  setToken,
-  setUser,
-} from "@/store/slices/authSlice";
+import { useAuth } from "@/features/auth";
 import { Validators } from "@/utils/validators";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -116,16 +108,15 @@ const styles = StyleSheet.create({
 });
 
 export default function LoginScreen() {
-  const dispatch = useAppDispatch();
   const router = useRouter();
-  const isLoading = useAppSelector((state: RootState) => state.auth.isLoading);
-  const error = useAppSelector((state: RootState) => state.auth.error);
+  const { signIn, isLoading, error, clearError } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const validateForm = (): boolean => {
     let isValid = true;
@@ -151,82 +142,15 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     if (!validateForm()) return;
 
-    dispatch(setLoading(true));
-    dispatch(setError(null));
-
     try {
-      interface LoginResponse {
-        success: boolean;
-        message: string;
-        data: {
-          id: string;
-          name: string;
-          email: string;
-          address?: string;
-          type: string;
-          image?: string;
-          token: {
-            access_token: string;
-            refresh_token: string;
-          };
-          createdAt: string;
-          updatedAt: string;
-        };
-        meta: Record<string, unknown>;
-      }
-
-      // Call actual API
-      const response = await networkService.post<LoginResponse>(
-        "/auth/signIn",
-        {
-          email,
-          password,
-        },
-        {
-          cache: false,
-          retryCount: 1,
-        },
-      );
-
-      // Extract user data and tokens
-      const { data } = response;
-      const user = {
-        id: data.id,
-        email: data.email,
-        name: data.name,
-      };
-      const accessToken = data.token.access_token;
-      const refreshToken = data.token.refresh_token;
-
-      // Store in Redux
-      dispatch(setUser(user));
-      dispatch(setToken(accessToken));
-
-      // Save to persistent storage
-      await storageService.setItem("authToken", accessToken);
-      await storageService.setItem("authRefreshToken", refreshToken);
-      await storageService.setItem("authUser", JSON.stringify(user));
-
-      router.replace("/(tabs)");
-    } catch (err: unknown) {
-      let errorMessage = "Login failed. Please try again.";
-
-      // Handle API error response
-      if (err instanceof Error) {
-        if (err.message.includes("Invalid email or password")) {
-          errorMessage = "Invalid email or password";
-        } else if (err.message.includes("Network")) {
-          errorMessage = "Network error. Please check your connection.";
-        } else if (err.message.includes("timeout")) {
-          errorMessage = "Request timeout. Please try again.";
-        } else {
-          errorMessage = err.message || errorMessage;
-        }
-      }
-
-      dispatch(setError(errorMessage));
-    } finally {
-      dispatch(setLoading(false));
+      // useAuth handles the API call, token persistence, and Redux state.
+      // It resolves with the server's success message, or throws on failure
+      // (the error message is already in auth.error via the rejected reducer).
+      const { message } = await signIn({ email, password });
+      setSuccessMessage(message);
+      // Navigation is handled centrally by the root layout's auth effect.
+    } catch {
+      // Error is surfaced through `error` from useAuth.
     }
   };
 
@@ -250,15 +174,6 @@ export default function LoginScreen() {
             Sign in to your account
           </Text>
         </View>
-
-        {/* Error Message */}
-        {error && (
-          <View style={{ marginBottom: Spacing.md }}>
-            <Text style={[TextStyles.body, { color: Colors.error }]}>
-              {error}
-            </Text>
-          </View>
-        )}
 
         {/* Form */}
         <View style={styles.form}>
@@ -321,7 +236,7 @@ export default function LoginScreen() {
         <View style={styles.footer}>
           <View style={{ flexDirection: "row", gap: Spacing.sm }}>
             <Text style={[TextStyles.body, styles.footerText]}>
-              Don't have an account?
+              Don&apos;t have an account?
             </Text>
             <Text
               style={[
@@ -340,6 +255,20 @@ export default function LoginScreen() {
           </View>
         </View>
       </ScrollView>
+
+      <Snackbar
+        visible={!!successMessage}
+        message={successMessage}
+        variant="success"
+        onDismiss={() => setSuccessMessage("")}
+      />
+
+      <Snackbar
+        visible={!!error}
+        message={error ?? ""}
+        variant="error"
+        onDismiss={clearError}
+      />
     </KeyboardAvoidingView>
   );
 }

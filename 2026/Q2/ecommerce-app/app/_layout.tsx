@@ -1,18 +1,29 @@
+import HeaderBackButton from "@/components/ui/HeaderBackButton";
+import { useAppDispatch } from "@/hooks/useRedux";
 import OnboardingScreen from "@/screens/onboarding/OnboardingScreen";
 import { storageService } from "@/services";
-import type { RootState } from "@/store";
-import { store } from "@/store";
-import { setToken, setUser } from "@/store/slices/authSlice";
-import { setHasViewedOnboarding } from "@/store/slices/onboardingSlice";
+import { tokenStore } from "@/services/session.token";
+import { CART_STORAGE_KEY, store, type RootState } from "@/store";
+import { logout, restoreSession } from "@/store/slices/authSlice";
+import { setCart, type CartItem } from "@/store/slices/cartSlice";
+import {
+  resetOnboarding,
+  setHasViewedOnboarding,
+} from "@/store/slices/onboardingSlice";
+
+// DEV TOGGLE: set to true to wipe all persisted data (auth session, cart,
+// onboarding flag, caches) on the next launch and boot into onboarding.
+// Leave false for normal behavior.
+const RESET_LOCAL_DATA = false;
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Provider, useDispatch, useSelector } from "react-redux";
+import { Provider, useSelector } from "react-redux";
 
 function RootLayoutContent() {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const router = useRouter();
   const [isHydrated, setIsHydrated] = useState(false);
   const hasViewedOnboarding = useSelector(
@@ -26,23 +37,29 @@ function RootLayoutContent() {
     // Restore onboarding state and auth state from storage on app start
     const restoreState = async () => {
       try {
+        // TEMP (dev): clear everything and force the onboarding flow.
+        if (RESET_LOCAL_DATA) {
+          await storageService.clear();
+          await tokenStore.clear();
+          dispatch(logout());
+          dispatch(resetOnboarding());
+          dispatch(setCart([]));
+          setIsHydrated(true);
+          return;
+        }
+
         const hasViewed = await storageService.getItem("hasViewedOnboarding");
         if (hasViewed === "true") {
           dispatch(setHasViewedOnboarding(true));
         }
 
-        // Restore auth state
-        const token = await storageService.getItem("authToken");
-        const userStr = await storageService.getItem("authUser");
+        // Restore persisted auth session (tokens + user) into Redux.
+        await dispatch(restoreSession());
 
-        if (token && userStr) {
-          try {
-            const user = JSON.parse(userStr as string);
-            dispatch(setToken(token as string));
-            dispatch(setUser(user));
-          } catch (error) {
-            console.error("Error parsing stored user:", error);
-          }
+        // Rehydrate the saved cart.
+        const cart = await storageService.getItem<CartItem[]>(CART_STORAGE_KEY);
+        if (Array.isArray(cart)) {
+          dispatch(setCart(cart));
         }
       } catch (error) {
         console.error("Error restoring state:", error);
@@ -80,6 +97,62 @@ function RootLayoutContent() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="edit-profile"
+          options={{
+            headerShown: true,
+            title: "Edit Profile",
+            headerLeft: () => <HeaderBackButton />,
+          }}
+        />
+        <Stack.Screen
+          name="change-password"
+          options={{
+            headerShown: true,
+            title: "Change Password",
+            headerLeft: () => <HeaderBackButton />,
+          }}
+        />
+        <Stack.Screen
+          name="faq"
+          options={{
+            headerShown: true,
+            title: "FAQ",
+            headerLeft: () => <HeaderBackButton />,
+          }}
+        />
+        <Stack.Screen
+          name="legal/[type]"
+          options={{
+            headerShown: true,
+            title: "",
+            headerLeft: () => <HeaderBackButton />,
+          }}
+        />
+        <Stack.Screen
+          name="support"
+          options={{
+            headerShown: true,
+            title: "Support Request",
+            headerLeft: () => <HeaderBackButton />,
+          }}
+        />
+        <Stack.Screen
+          name="categories"
+          options={{
+            headerShown: true,
+            title: "Categories",
+            headerLeft: () => <HeaderBackButton />,
+          }}
+        />
+        <Stack.Screen
+          name="collection"
+          options={{
+            headerShown: true,
+            title: "",
+            headerLeft: () => <HeaderBackButton />,
+          }}
+        />
       </Stack>
       <StatusBar style="auto" />
     </>

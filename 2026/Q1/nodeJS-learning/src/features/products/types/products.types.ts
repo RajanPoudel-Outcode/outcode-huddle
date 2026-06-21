@@ -1,13 +1,30 @@
+export interface IProductColor {
+  name: string;
+  hex: string;
+}
+
+export interface IProductSpecification {
+  label: string;
+  icon?: string;
+}
+
 export interface IProduct {
   name: string;
   description: string;
   images?: string[];
   quantity: number;
   price: number;
+  originalPrice?: number;
   category: string;
+  brand?: string;
   rating?: number;
+  numReviews?: number;
   review?: IProductReview[];
   countInStock?: number;
+  colors?: IProductColor[];
+  storageOptions?: string[];
+  specifications?: IProductSpecification[];
+  isFeatured?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -26,8 +43,15 @@ export interface ICreateProductRequest {
   description: string;
   quantity: number;
   price: number;
+  originalPrice?: number;
   category: string;
+  brand?: string;
+  numReviews?: number;
   countInStock?: number;
+  colors?: IProductColor[];
+  storageOptions?: string[];
+  specifications?: IProductSpecification[];
+  isFeatured?: boolean;
 }
 
 export interface IUpdateProductRequest {
@@ -35,8 +59,15 @@ export interface IUpdateProductRequest {
   description?: string;
   quantity?: number;
   price?: number;
+  originalPrice?: number;
   category?: string;
+  brand?: string;
+  numReviews?: number;
   countInStock?: number;
+  colors?: IProductColor[];
+  storageOptions?: string[];
+  specifications?: IProductSpecification[];
+  isFeatured?: boolean;
 }
 
 export interface IAddReviewRequest {
@@ -51,6 +82,7 @@ export interface IProductQuery {
   minPrice?: number;
   maxPrice?: number;
   search?: string;
+  featured?: boolean;
   sortBy?: 'name' | 'price' | 'rating' | 'createdAt';
   sortOrder?: 'asc' | 'desc';
 }
@@ -62,10 +94,18 @@ export interface IProductResponse {
   images: string[];
   quantity: number;
   price: number;
+  originalPrice?: number;
   category: string;
+  brand: string;
   rating: number;
+  numReviews: number;
   review: IProductReview[];
   countInStock: number;
+  colors: IProductColor[];
+  storageOptions: string[];
+  specifications: IProductSpecification[];
+  isFeatured: boolean;
+  isWishlisted: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
