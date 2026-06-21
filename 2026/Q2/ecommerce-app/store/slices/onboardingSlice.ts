@@ -10,7 +10,7 @@ const initialState: OnboardingState = {
   currentPage: 0,
 };
 
-const onboardingSlice = createSlice({
+export const onboardingSlice = createSlice({
   name: "onboarding",
   initialState,
   reducers: {

@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.gray[300],
+    backgroundColor: Colors.gray[30],
   },
   activeDot: {
     backgroundColor: Colors.primary,

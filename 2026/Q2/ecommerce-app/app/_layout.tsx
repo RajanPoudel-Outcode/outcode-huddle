@@ -1,3 +1,4 @@
+import HeaderBackButton from "@/components/ui/HeaderBackButton";
 import { useAppDispatch } from "@/hooks/useRedux";
 import OnboardingScreen from "@/screens/onboarding/OnboardingScreen";
 import { storageService } from "@/services";
@@ -75,8 +76,7 @@ function RootLayoutContent() {
           options={{
             headerShown: true,
             title: "Edit Profile",
-            headerBackTitle: "",
-            headerBackButtonDisplayMode: "minimal",
+            headerLeft: () => <HeaderBackButton />,
           }}
         />
         <Stack.Screen
@@ -84,8 +84,7 @@ function RootLayoutContent() {
           options={{
             headerShown: true,
             title: "Change Password",
-            headerBackTitle: "",
-            headerBackButtonDisplayMode: "minimal",
+            headerLeft: () => <HeaderBackButton />,
           }}
         />
       </Stack>
