@@ -37,8 +37,8 @@ const corsOptions = {
     "http://127.0.0.1:3000",
     "http://192.168.1.3:3001",
     "http://192.168.1.3:3000",
-    "http://192.168.10.241:3000",
-    "http://192.168.10.241:3001",
+    "http://192.168.10.104:3000",
+    "http://192.168.10.104:3001",
   ],
   credentials: true,
   optionsSuccessStatus: 200,
@@ -48,6 +48,9 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// Serve uploaded files (e.g. profile images) statically at /uploads
+app.use("/uploads", express.static("uploads"));
 
 // Add metadata to all API responses
 app.use("/api", responseMiddleware);
